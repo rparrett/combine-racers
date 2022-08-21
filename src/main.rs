@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+mod main_menu;
 mod ui;
 
 use bevy::prelude::*;
@@ -8,6 +9,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
+use main_menu::MainMenuPlugin;
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -27,7 +29,8 @@ struct Wheel;
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
     AssetLoading,
-    Next,
+    MainMenu,
+    Playing,
 }
 
 #[derive(AssetCollection)]
@@ -72,7 +75,7 @@ fn main() {
         .add_state_to_stage(CoreStage::PostUpdate, GameState::AssetLoading)
         .add_loading_state(
             LoadingState::new(GameState::AssetLoading)
-                .continue_to_state(GameState::Next)
+                .continue_to_state(GameState::MainMenu)
                 .with_collection::<GameAssets>(),
         )
         .add_plugins(DefaultPlugins)
@@ -81,22 +84,23 @@ fn main() {
         .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(InputManagerPlugin::<Action>::default())
         .add_plugin(UiPlugin)
+        .add_plugin(MainMenuPlugin)
         //.add_plugin(WireframePlugin)
         .add_system_set(
-            SystemSet::on_enter(GameState::Next)
+            SystemSet::on_enter(GameState::Playing)
                 .with_system(setup_physics)
                 .with_system(setup_graphics),
         )
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
-            SystemSet::on_update(GameState::Next)
+            SystemSet::on_update(GameState::Playing)
                 .with_system(camera_follow)
                 .with_system(display_events)
                 .with_system(player_dampening)
                 .with_system(track_trick.after(player_dampening)),
         )
         .add_system_set(
-            SystemSet::on_update(GameState::Next)
+            SystemSet::on_update(GameState::Playing)
                 .with_system(player_movement)
                 .with_system(boost),
         )
@@ -118,10 +122,7 @@ fn setup_graphics(
     meshes: Res<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
 ) {
-    commands.spawn_bundle(Camera3dBundle {
-        transform: Transform::from_xyz(0., 0., 100.0),
-        ..Default::default()
-    });
+    info!("setup_graphics");
 
     let mesh_handle = asset_server.load("tracktest.glb#Mesh0/Primitive0");
 
