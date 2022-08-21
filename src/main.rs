@@ -359,6 +359,8 @@ fn track_trick(
 
             rotation.total += rot.z;
 
+            // TODO back/front reversed when travelling left
+
             if rotation.total > std::f32::consts::TAU {
                 rotation.back_flips += 1;
                 rotation.total -= std::f32::consts::TAU;
