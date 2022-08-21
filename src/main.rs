@@ -194,6 +194,23 @@ pub fn setup_physics(mut commands: Commands) {
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
     axes.insert(LockedAxes::TRANSLATION_LOCKED_Z);
 
+    let mut input_map = InputMap::new([
+        (KeyCode::Left, Action::Left),
+        (KeyCode::A, Action::Left),
+        (KeyCode::Right, Action::Right),
+        (KeyCode::D, Action::Right),
+        (KeyCode::Q, Action::RotateLeft),
+        (KeyCode::E, Action::RotateRight),
+        (KeyCode::Space, Action::Jump),
+    ]);
+    input_map.insert_multiple([
+        (GamepadButtonType::DPadLeft, Action::Left),
+        (GamepadButtonType::DPadRight, Action::Right),
+        (GamepadButtonType::LeftTrigger, Action::RotateLeft),
+        (GamepadButtonType::RightTrigger, Action::RotateRight),
+        (GamepadButtonType::South, Action::Jump),
+    ]);
+
     commands
         .spawn_bundle(TransformBundle::from(Transform::from_xyz(0., 0., 0.)))
         .insert(RigidBody::Dynamic)
@@ -204,15 +221,7 @@ pub fn setup_physics(mut commands: Commands) {
         .insert(ColliderDebugColor(Color::ORANGE))
         .insert(ExternalImpulse::default())
         .insert_bundle(InputManagerBundle::<Action> {
-            input_map: InputMap::new([
-                (KeyCode::Left, Action::Left),
-                (KeyCode::A, Action::Left),
-                (KeyCode::Right, Action::Right),
-                (KeyCode::D, Action::Right),
-                (KeyCode::Q, Action::RotateLeft),
-                (KeyCode::E, Action::RotateRight),
-                (KeyCode::Space, Action::Jump),
-            ]),
+            input_map,
             ..default()
         })
         .insert(ActiveEvents::COLLISION_EVENTS)

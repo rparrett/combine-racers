@@ -5,7 +5,6 @@ For Bevy Jam 2
 ## TODO
 
 - [ ] jump needs a cooldown timer
-- [ ] gilrs
 - [ ] intro
 - [ ] azerty
 - [ ] barrel roll
