@@ -6,6 +6,9 @@ For Bevy Jam 2
 
 - [ ] jump needs a cooldown timer
 - [ ] collision with combine body should reset trick
+- [ ] audio
+- [ ] chrome audio fix
+- [ ] webgl flicker fix (if no skybox or parallax)
 - [ ] intro
 - [ ] azerty
 - [ ] barrel roll
