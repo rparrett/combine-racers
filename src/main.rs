@@ -4,12 +4,13 @@
 mod main_menu;
 mod ui;
 
-use bevy::prelude::*;
+use bevy::{gltf::GltfExtras, prelude::*};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
+use serde::Deserialize;
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -35,8 +36,7 @@ enum GameState {
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[allow(dead_code)]
-    #[asset(path = "tracktest.glb")]
+    #[asset(path = "tracktest.glb#Scene0")]
     track: Handle<Scene>,
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
@@ -67,6 +67,9 @@ impl Default for Boost {
         Self { timer }
     }
 }
+
+#[derive(Component)]
+struct Track;
 
 fn main() {
     App::new()
@@ -102,7 +105,8 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(GameState::Playing)
                 .with_system(player_movement)
-                .with_system(boost),
+                .with_system(boost)
+                .with_system(decorate_track),
         )
         .run();
 }
@@ -117,76 +121,55 @@ enum Action {
     Jump,
 }
 
+fn decorate_track(
+    mut commands: Commands,
+    query: Query<(Entity, &GltfExtras, &Children)>,
+    mesh_query: Query<(Entity, &Handle<Mesh>), Without<Collider>>,
+    meshes: Res<Assets<Mesh>>,
+) {
+    for (entity, extras, children) in query.iter() {
+        #[derive(Deserialize)]
+        struct TrackExtra {
+            object_type: String,
+        }
+
+        if let Ok(v) = serde_json::from_str::<TrackExtra>(&extras.value) {
+            if v.object_type == "track" {
+                for (mesh_entity, mesh_handle) in mesh_query.iter_many(children) {
+                    commands
+                        .entity(mesh_entity)
+                        .insert(ColliderDebugColor(Color::GREEN))
+                        .insert(
+                            Collider::from_bevy_mesh(
+                                meshes.get(&mesh_handle).unwrap(),
+                                &ComputedColliderShape::TriMesh,
+                            )
+                            .unwrap(),
+                        );
+
+                    info!("Added collider to {:?}", entity);
+                }
+            }
+        }
+    }
+}
+
 fn setup_graphics(
     mut commands: Commands,
     meshes: Res<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
 ) {
     info!("setup_graphics");
 
-    let mesh_handle = asset_server.load("tracktest.glb#Mesh0/Primitive0");
-
     commands
-        .spawn_bundle(SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
+        .spawn_bundle({
+            SceneBundle {
+                scene: assets.track.clone(),
+                ..default()
+            }
         })
-        .insert(ColliderDebugColor(Color::GREEN))
-        .insert(
-            Collider::from_bevy_mesh(
-                meshes.get(&mesh_handle).unwrap(),
-                &ComputedColliderShape::TriMesh,
-            )
-            .unwrap(),
-        );
-
-    let mesh_handle = asset_server.load("tracktest.glb#Mesh1/Primitive0");
-
-    commands
-        .spawn_bundle(SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
-        })
-        .insert(ColliderDebugColor(Color::GREEN))
-        .insert(
-            Collider::from_bevy_mesh(
-                meshes.get(&mesh_handle).unwrap(),
-                &ComputedColliderShape::TriMesh,
-            )
-            .unwrap(),
-        );
-
-    let mesh_handle = asset_server.load("tracktest.glb#Mesh2/Primitive0");
-
-    commands
-        .spawn_bundle(SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
-        })
-        .insert(ColliderDebugColor(Color::GREEN))
-        .insert(
-            Collider::from_bevy_mesh(
-                meshes.get(&mesh_handle).unwrap(),
-                &ComputedColliderShape::TriMesh,
-            )
-            .unwrap(),
-        );
-
-    let mesh_handle = asset_server.load("tracktest.glb#Mesh3/Primitive0");
-
-    commands
-        .spawn_bundle(SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
-        })
-        .insert(ColliderDebugColor(Color::GREEN))
-        .insert(
-            Collider::from_bevy_mesh(
-                meshes.get(&mesh_handle).unwrap(),
-                &ComputedColliderShape::TriMesh,
-            )
-            .unwrap(),
-        );
+        .insert(Track);
 }
 
 pub fn setup_physics(mut commands: Commands) {

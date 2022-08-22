@@ -1136,6 +1136,8 @@ dependencies = [
  "bevy_rapier3d",
  "interpolation",
  "leafwing-input-manager",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
