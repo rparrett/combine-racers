@@ -5,15 +5,14 @@ For Bevy Jam 2
 ## TODO
 
 - [ ] jump needs a cooldown timer
-- [ ] collision with combine body should reset trick
+- [ ] collision with track and combine body should reset trick
 - [ ] audio
 - [ ] chrome audio fix
 - [ ] webgl flicker fix (if no skybox or parallax)
-- [ ] intro
 - [ ] azerty
 - [ ] barrel roll
+- [ ] "fakie" modifier
 - [ ] art
-- [ ] finish line
 - [ ] (stretch) sticky patch
 - [ ] jornet
 - [ ] downforce?
