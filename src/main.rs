@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+mod countdown;
 mod main_menu;
 mod ui;
 
@@ -8,6 +9,7 @@ use bevy::{gltf::GltfExtras, prelude::*};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
+use countdown::CountdownPlugin;
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use serde::Deserialize;
@@ -70,6 +72,8 @@ impl Default for Boost {
 
 #[derive(Component)]
 struct Track;
+#[derive(Component)]
+struct FinishLine;
 
 fn main() {
     App::new()
@@ -88,6 +92,7 @@ fn main() {
         .add_plugin(InputManagerPlugin::<Action>::default())
         .add_plugin(UiPlugin)
         .add_plugin(MainMenuPlugin)
+        .add_plugin(CountdownPlugin)
         //.add_plugin(WireframePlugin)
         .add_system_set(
             SystemSet::on_enter(GameState::Playing)
@@ -126,6 +131,7 @@ fn decorate_track(
     query: Query<(Entity, &GltfExtras, &Children)>,
     mesh_query: Query<(Entity, &Handle<Mesh>), Without<Collider>>,
     meshes: Res<Assets<Mesh>>,
+    mut visibility_query: Query<&mut Visibility>,
 ) {
     for (entity, extras, children) in query.iter() {
         #[derive(Deserialize)]
@@ -145,9 +151,29 @@ fn decorate_track(
                                 &ComputedColliderShape::TriMesh,
                             )
                             .unwrap(),
-                        );
+                        )
+                        .insert(Track);
 
                     info!("Added collider to {:?}", entity);
+                }
+            } else if v.object_type == "finish_line" {
+                for (mesh_entity, mesh_handle) in mesh_query.iter_many(children) {
+                    commands
+                        .entity(mesh_entity)
+                        .insert(ColliderDebugColor(Color::GRAY))
+                        .insert(
+                            Collider::from_bevy_mesh(
+                                meshes.get(&mesh_handle).unwrap(),
+                                &ComputedColliderShape::TriMesh,
+                            )
+                            .unwrap(),
+                        )
+                        .insert(Sensor)
+                        .insert(FinishLine);
+                    info!("Added collider to {:?}", entity);
+                }
+                if let Ok(mut visibility) = visibility_query.get_mut(entity) {
+                    visibility.is_visible = false;
                 }
             }
         }
@@ -162,14 +188,12 @@ fn setup_graphics(mut commands: Commands, assets: Res<GameAssets>) {
         ..default()
     });
 
-    commands
-        .spawn_bundle({
-            SceneBundle {
-                scene: assets.track.clone(),
-                ..default()
-            }
-        })
-        .insert(Track);
+    commands.spawn_bundle({
+        SceneBundle {
+            scene: assets.track.clone(),
+            ..default()
+        }
+    });
 }
 
 pub fn setup_physics(mut commands: Commands) {
@@ -290,19 +314,34 @@ fn display_events(
     mut collision_events: EventReader<CollisionEvent>,
     mut contact_force_events: EventReader<ContactForceEvent>,
     wheel_query: Query<Entity, With<Wheel>>,
+    track_query: Query<Entity, With<Track>>,
+    finish_line_query: Query<Entity, With<FinishLine>>,
     mut player_query: Query<&mut WheelsOnGround, With<Player>>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
             CollisionEvent::Started(e1, e2, _) => {
-                for _ in wheel_query.iter_many([e1, e2]) {
-                    for mut wheels in player_query.iter_mut() {
-                        wheels.0 += 1;
+                let finish_line = finish_line_query.iter_many([e1, e2]).count() > 0;
+                let track = track_query.iter_many([e1, e2]).count() > 0;
+                let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
+
+                match (wheel, track, finish_line) {
+                    (true, true, false) => {
+                        for mut wheels in player_query.iter_mut() {
+                            wheels.0 += 1;
+                        }
                     }
+                    (true, false, true) => {
+                        info!("finish!");
+                    }
+                    _ => {}
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                for _ in wheel_query.iter_many([e1, e2]) {
+                let track = track_query.iter_many([e1, e2]).count() > 0;
+                let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
+
+                if track && wheel {
                     for mut wheels in player_query.iter_mut() {
                         wheels.0 -= 1;
                     }
