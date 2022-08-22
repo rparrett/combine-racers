@@ -154,13 +154,13 @@ fn decorate_track(
     }
 }
 
-fn setup_graphics(
-    mut commands: Commands,
-    meshes: Res<Assets<Mesh>>,
-    asset_server: Res<AssetServer>,
-    assets: Res<GameAssets>,
-) {
+fn setup_graphics(mut commands: Commands, assets: Res<GameAssets>) {
     info!("setup_graphics");
+
+    commands.spawn_bundle(DirectionalLightBundle {
+        transform: Transform::from_rotation(Quat::from_rotation_x(-0.9)),
+        ..default()
+    });
 
     commands
         .spawn_bundle({
