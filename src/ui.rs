@@ -41,7 +41,6 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                 size: Size {
                     width: Val::Px(120.),
                     height: Val::Px(60.),
-                    ..default()
                 },
                 align_items: AlignItems::FlexEnd,
                 justify_content: JustifyContent::FlexStart,

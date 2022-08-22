@@ -132,15 +132,13 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
 
     let title = commands
         .spawn_bundle(
-            TextBundle::from_section("Combine-Racers", title_text_style.clone()).with_style(
-                Style {
-                    margin: UiRect {
-                        bottom: Val::Px(10.0),
-                        ..default()
-                    },
+            TextBundle::from_section("Combine-Racers", title_text_style).with_style(Style {
+                margin: UiRect {
+                    bottom: Val::Px(10.0),
                     ..default()
                 },
-            ),
+                ..default()
+            }),
         )
         .id();
 
@@ -184,7 +182,7 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
 
     let audio_settings_title = commands
         .spawn_bundle(
-            TextBundle::from_section("Audio", subtitle_text_style.clone()).with_style(Style {
+            TextBundle::from_section("Audio", subtitle_text_style).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
             }),
@@ -210,16 +208,13 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
 
     let music_button = commands
         .spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
+            style: button_style,
             color: NORMAL_BUTTON.into(),
             ..default()
         })
         .with_children(|parent| {
             parent
-                .spawn_bundle(TextBundle::from_section(
-                    "Music 100%",
-                    button_text_style.clone(),
-                ))
+                .spawn_bundle(TextBundle::from_section("Music 100%", button_text_style))
                 .insert(MusicSettingButtonText);
         })
         .insert(MusicSettingButton)
@@ -262,11 +257,8 @@ fn play_button(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<PlayButton>)>,
 ) {
     for interaction in &interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                state.set(GameState::Playing).unwrap();
-            }
-            _ => {}
+        if *interaction == Interaction::Clicked {
+            state.set(GameState::Playing).unwrap();
         }
     }
 }
@@ -284,18 +276,15 @@ fn keyboard_setting_button(
     mut text_query: Query<&mut Text, With<KeyboardSettingButtonText>>,
 ) {
     for interaction in &interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                **setting = match **setting {
-                    KeyboardLayout::Azerty => KeyboardLayout::Qwerty,
-                    KeyboardLayout::Qwerty => KeyboardLayout::Azerty,
-                };
+        if *interaction == Interaction::Clicked {
+            **setting = match **setting {
+                KeyboardLayout::Azerty => KeyboardLayout::Qwerty,
+                KeyboardLayout::Qwerty => KeyboardLayout::Azerty,
+            };
 
-                for mut text in text_query.iter_mut() {
-                    text.sections[0].value = format!("{}", **setting);
-                }
+            for mut text in text_query.iter_mut() {
+                text.sections[0].value = format!("{}", **setting);
             }
-            _ => {}
         }
     }
 }
@@ -309,19 +298,16 @@ fn music_setting_button(
     mut text_query: Query<&mut Text, With<MusicSettingButtonText>>,
 ) {
     for interaction in &interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                if **setting == 0 {
-                    **setting = 100;
-                } else {
-                    **setting -= 10;
-                }
-
-                for mut text in text_query.iter_mut() {
-                    text.sections[0].value = format!("Music {}%", **setting);
-                }
+        if *interaction == Interaction::Clicked {
+            if **setting == 0 {
+                **setting = 100;
+            } else {
+                **setting -= 10;
             }
-            _ => {}
+
+            for mut text in text_query.iter_mut() {
+                text.sections[0].value = format!("Music {}%", **setting);
+            }
         }
     }
 }
@@ -335,19 +321,16 @@ fn sfx_setting_button(
     mut text_query: Query<&mut Text, With<SfxSettingButtonText>>,
 ) {
     for interaction in &interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                if **setting == 0 {
-                    **setting = 100;
-                } else {
-                    **setting -= 10;
-                }
-
-                for mut text in text_query.iter_mut() {
-                    text.sections[0].value = format!("SFX {}%", **setting);
-                }
+        if *interaction == Interaction::Clicked {
+            if **setting == 0 {
+                **setting = 100;
+            } else {
+                **setting -= 10;
             }
-            _ => {}
+
+            for mut text in text_query.iter_mut() {
+                text.sections[0].value = format!("SFX {}%", **setting);
+            }
         }
     }
 }

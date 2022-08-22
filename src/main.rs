@@ -155,7 +155,7 @@ fn decorate_track(
                         .insert(ColliderDebugColor(Color::GREEN))
                         .insert(
                             Collider::from_bevy_mesh(
-                                meshes.get(&mesh_handle).unwrap(),
+                                meshes.get(mesh_handle).unwrap(),
                                 &ComputedColliderShape::TriMesh,
                             )
                             .unwrap(),
@@ -171,7 +171,7 @@ fn decorate_track(
                         .insert(ColliderDebugColor(Color::GRAY))
                         .insert(
                             Collider::from_bevy_mesh(
-                                meshes.get(&mesh_handle).unwrap(),
+                                meshes.get(mesh_handle).unwrap(),
                                 &ComputedColliderShape::TriMesh,
                             )
                             .unwrap(),
