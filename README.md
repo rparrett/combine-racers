@@ -16,3 +16,4 @@ For Bevy Jam 2
 - [ ] (stretch) sticky patch
 - [ ] jornet
 - [ ] downforce?
+- [ ] restart button (mid-race)
