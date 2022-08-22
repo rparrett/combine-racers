@@ -1,6 +1,3 @@
-//! This example illustrates how to use [`States`] to control transitioning from a `Menu` state to
-//! an `InGame` state.
-
 use bevy::prelude::*;
 
 use crate::{GameAssets, GameState};
