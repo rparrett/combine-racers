@@ -17,3 +17,5 @@ For Bevy Jam 2
 - [ ] jornet
 - [ ] downforce?
 - [ ] restart button (mid-race)
+- [ ] navigate ui with gamepad
+- [ ] input bindings graphic
