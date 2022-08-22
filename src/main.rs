@@ -5,7 +5,7 @@ mod countdown;
 mod main_menu;
 mod ui;
 
-use bevy::{gltf::GltfExtras, prelude::*};
+use bevy::{gltf::GltfExtras, prelude::*, time::Stopwatch};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
@@ -74,6 +74,16 @@ impl Default for Boost {
 struct Track;
 #[derive(Component)]
 struct FinishLine;
+#[derive(Deref, DerefMut)]
+struct RaceTime(Stopwatch);
+impl Default for RaceTime {
+    fn default() -> Self {
+        let mut watch = Stopwatch::default();
+        watch.pause();
+
+        Self(watch)
+    }
+}
 
 fn main() {
     App::new()
@@ -94,11 +104,8 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(CountdownPlugin)
         //.add_plugin(WireframePlugin)
-        .add_system_set(
-            SystemSet::on_enter(GameState::Playing)
-                .with_system(setup_physics)
-                .with_system(setup_graphics),
-        )
+        .init_resource::<RaceTime>()
+        .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup_game))
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
             SystemSet::on_update(GameState::Playing)
@@ -111,7 +118,8 @@ fn main() {
             SystemSet::on_update(GameState::Playing)
                 .with_system(player_movement)
                 .with_system(boost)
-                .with_system(decorate_track),
+                .with_system(decorate_track)
+                .with_system(race_time),
         )
         .run();
 }
@@ -180,9 +188,7 @@ fn decorate_track(
     }
 }
 
-fn setup_graphics(mut commands: Commands, assets: Res<GameAssets>) {
-    info!("setup_graphics");
-
+fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     commands.spawn_bundle(DirectionalLightBundle {
         transform: Transform::from_rotation(Quat::from_rotation_x(-0.9)),
         ..default()
@@ -194,9 +200,7 @@ fn setup_graphics(mut commands: Commands, assets: Res<GameAssets>) {
             ..default()
         }
     });
-}
 
-pub fn setup_physics(mut commands: Commands) {
     let mut axes = LockedAxes::empty();
     axes.insert(LockedAxes::ROTATION_LOCKED_X);
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
@@ -276,7 +280,12 @@ fn player_movement(
         ),
         With<Player>,
     >,
+    race_timer: Res<RaceTime>,
 ) {
+    if race_timer.paused() {
+        return;
+    }
+
     for (action_state, mut impulse, mut velocity, wheels, transform) in query.iter_mut() {
         // Each action has a button-like state of its own that you can check
         if action_state.pressed(Action::Left) && **wheels >= 1 {
@@ -317,6 +326,7 @@ fn display_events(
     track_query: Query<Entity, With<Track>>,
     finish_line_query: Query<Entity, With<FinishLine>>,
     mut player_query: Query<&mut WheelsOnGround, With<Player>>,
+    mut race_time: ResMut<RaceTime>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
@@ -332,7 +342,8 @@ fn display_events(
                         }
                     }
                     (true, false, true) => {
-                        info!("finish!");
+                        // TODO stop player movement, show leaderboard, etc
+                        race_time.pause();
                     }
                     _ => {}
                 }
@@ -449,4 +460,9 @@ fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<P
             info!("speed limit now {}", **speed_limit);
         }
     }
+}
+
+fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
+    race_time.tick(time.delta());
+    info!("{:?}", **race_time);
 }

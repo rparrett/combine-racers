@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use interpolation::Ease;
 
-use crate::{ui::TrickText, GameState};
+use crate::{ui::TrickText, GameState, RaceTime};
 
 pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
@@ -34,6 +34,7 @@ fn update(
     time: Res<Time>,
     mut query: Query<&mut CountdownTimer>,
     mut text_query: Query<&mut Text, With<TrickText>>,
+    mut race_time: ResMut<RaceTime>,
 ) {
     for mut timer in query.iter_mut() {
         if !timer.countdown.finished() {
@@ -48,11 +49,11 @@ fn update(
             }
 
             if timer.countdown.just_finished() {
-                // TODO start race timer
                 for mut text in text_query.iter_mut() {
                     text.sections[0].value = "GO!".to_string();
                 }
                 timer.go.reset();
+                race_time.unpause();
             }
         } else if !timer.go.finished() {
             timer.go.tick(time.delta());
