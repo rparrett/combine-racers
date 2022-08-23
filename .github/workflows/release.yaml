@@ -28,10 +28,10 @@ jobs:
           cargo install wasm-bindgen-cli
 
       - name: Build
-        run: |
         env:
           JORNET_LEADERBOARD_ID: ${{ secrets.JORNET_LEADERBOARD_ID }}
           JORNET_LEADERBOARD_KEY: ${{ secrets.JORNET_LEADERBOARD_KEY }}
+        run: |
           cargo build --release --target wasm32-unknown-unknown
 
       - name: Prepare package
