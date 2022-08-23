@@ -320,7 +320,6 @@ fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
         });
 }
 
-// Query for the `ActionState` component in your game logic systems!
 fn player_movement(
     time: Res<Time>,
     mut query: Query<
@@ -340,7 +339,6 @@ fn player_movement(
     }
 
     for (action_state, mut impulse, mut velocity, wheels, transform) in query.iter_mut() {
-        // Each action has a button-like state of its own that you can check
         if action_state.pressed(Action::Left) && **wheels >= 1 {
             impulse.impulse = transform.rotation * -Vec3::X * 500. * time.delta_seconds();
         }
