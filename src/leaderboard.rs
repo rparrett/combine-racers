@@ -317,7 +317,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
 
     let play_again = commands
         .spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
+            style: button_style,
             color: NORMAL_BUTTON.into(),
             ..default()
         })
