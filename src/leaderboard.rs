@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_jornet::{JornetPlugin, Leaderboard};
+use bevy_jornet::{JornetPlugin, Leaderboard, LeaderboardEvent};
 
 use crate::{GameAssets, GameState, RaceTime};
 
@@ -52,7 +52,7 @@ impl Default for Refreshing {
     }
 }
 #[derive(Component)]
-struct RefreshingText;
+struct LoadingText;
 #[derive(Component)]
 struct LeaderboardMarker;
 #[derive(Component)]
@@ -63,151 +63,144 @@ const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
 
-fn initiate_refresh(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut timer: ResMut<RefreshTimer>,
-    leaderboard: Res<Leaderboard>,
-    mut refreshing: ResMut<Refreshing>,
-) {
-    timer.tick(time.delta());
-    if timer.just_finished() {
-        info!("initiating refresh");
-        leaderboard.refresh_leaderboard();
-        **refreshing = true;
+fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<LeaderboardEvent>) {
+    if !events
+        .iter()
+        .any(|e| matches!(*e, LeaderboardEvent::SendScoreSucceeded))
+    {
+        return;
     }
+
+    info!("score sending succeeded. refreshing leaderboard.");
+
+    leaderboard.refresh_leaderboard();
 }
 
 fn update_leaderboard(
     mut commands: Commands,
     leaderboard: Res<Leaderboard>,
     time: Res<RaceTime>,
-    mut refreshing: ResMut<Refreshing>,
     container_query: Query<Entity, With<ScoresContainer>>,
-    mut refreshing_text_query: Query<&mut Text, With<RefreshingText>>,
+    loading_text_query: Query<Entity, With<LoadingText>>,
     assets: Res<GameAssets>,
+    mut events: EventReader<LeaderboardEvent>,
 ) {
-    if refreshing.is_changed() {
-        for mut text in refreshing_text_query.iter_mut() {
-            text.sections[0].value = if **refreshing {
-                "Refreshing...".to_string()
-            } else {
-                "".to_string()
-            };
-        }
+    if !events
+        .iter()
+        .any(|e| matches!(*e, LeaderboardEvent::RefreshLeaderboardSucceeded))
+    {
+        return;
     }
 
-    if leaderboard.is_changed() {
-        info!("leaderboard changed");
+    info!("update_leaderboard");
 
-        if let Some(player) = leaderboard.get_player() {
-            let container = container_query.single();
-            commands.entity(container).despawn_descendants();
+    for entity in loading_text_query.iter() {
+        // I am not sure why this needs to be despawn_recursive, but we panic without it.
+        // Is despawn_recursive better named `hierarchy_aware_despawn` or something? The
+        // LoadingText itself has no children...
+        commands.entity(entity).despawn_recursive();
+    }
 
-            let leaderboard = leaderboard.get_leaderboard();
+    if let Some(player) = leaderboard.get_player() {
+        let container = container_query.single();
+        commands.entity(container).despawn_descendants();
 
-            let mut displayed_our_score = false;
+        let leaderboard = leaderboard.get_leaderboard();
 
-            for (i, score) in leaderboard.iter().enumerate() {
-                // bleh
-                let is_us = player.name == score.player;
+        let has_us = leaderboard
+            .iter()
+            .any(|score| player.name == score.player && score.score == -time.elapsed_secs());
 
-                // When we have a fresh leaderboard (when not refreshing), we assume
-                // that our score would be included if it were high enough. So if we
-                // haven't already displayed our score, toss it in at the last position.
+        for (i, score) in leaderboard.iter().enumerate() {
+            // When we have a fresh leaderboard (when not refreshing), we assume
+            // that our score would be included if it were high enough. So if we
+            // haven't already displayed our score, toss it in at the last position.
+            let (display_score, display_name, is_us, rank) =
+                if !has_us && i == leaderboard.len() - 1 {
+                    (time.elapsed_secs(), &player.name, true, "?".to_string())
+                } else {
+                    let is_us = player.name == score.player && score.score == -time.elapsed_secs();
 
-                let (display_score, display_name, you) =
-                    if !**refreshing && i == leaderboard.len() - 1 && !displayed_our_score {
-                        info!("{} {} <-- you", time.elapsed_secs(), player.name);
+                    (-score.score, &score.player, is_us, format!("{}", i + 1))
+                };
 
-                        (time.elapsed_secs(), &player.name, true)
-                    } else {
-                        info!(
-                            "{} {} {}",
-                            1. / score.score,
-                            &score.player,
-                            if is_us {
-                                "<-- You".to_string()
-                            } else {
-                                "".to_string()
-                            }
-                        );
-
-                        if is_us && score.score == 1. / time.elapsed_secs() {
-                            displayed_our_score = true;
-                        }
-
-                        (1. / score.score, &score.player, is_us)
-                    };
-
-                let row = commands
-                    .spawn_bundle(NodeBundle {
-                        style: Style {
-                            size: Size {
-                                height: Val::Px(30.),
-                                ..default()
-                            },
+            let row = commands
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(30.),
                             ..default()
                         },
-                        color: Color::NONE.into(),
                         ..default()
-                    })
-                    .id();
+                    },
+                    color: Color::NONE.into(),
+                    ..default()
+                })
+                .id();
 
-                let name_container = commands
-                    .spawn_bundle(NodeBundle {
-                        style: Style {
-                            size: Size {
-                                width: Val::Px(250.),
-                                ..default()
-                            },
-                            overflow: Overflow::Hidden,
+            let rank_text = commands
+                .spawn_bundle(TextBundle {
+                    text: Text::from_section(
+                        rank,
+                        TextStyle {
+                            font: assets.font.clone(),
+                            font_size: 30.,
+                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                        },
+                    ),
+                    style: Style {
+                        size: Size {
+                            width: Val::Px(50.),
                             ..default()
                         },
-                        color: Color::NONE.into(),
                         ..default()
-                    })
-                    .id();
+                    },
+                    ..default()
+                })
+                .id();
 
-                let name_text = commands
-                    .spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            display_name,
-                            TextStyle {
-                                font: assets.font.clone(),
-                                font_size: 30.,
-                                color: if you { Color::PURPLE } else { Color::WHITE },
-                            },
-                        ),
+            let name_text = commands
+                .spawn_bundle(TextBundle {
+                    text: Text::from_section(
+                        display_name,
+                        TextStyle {
+                            font: assets.font.clone(),
+                            font_size: 30.,
+                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                        },
+                    ),
+                    style: Style {
+                        size: Size {
+                            width: Val::Px(300.),
+                            ..default()
+                        },
+                        overflow: Overflow::Hidden,
                         ..default()
-                    })
-                    .id();
+                    },
+                    ..default()
+                })
+                .id();
 
-                commands.entity(name_container).push_children(&[name_text]);
+            let score_text = commands
+                .spawn_bundle(TextBundle {
+                    text: Text::from_section(
+                        format!("{:.3}", display_score),
+                        TextStyle {
+                            font: assets.font.clone(),
+                            font_size: 30.,
+                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                        },
+                    ),
+                    ..default()
+                })
+                .id();
 
-                let score_text = commands
-                    .spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            format!("{:.3}", display_score),
-                            TextStyle {
-                                font: assets.font.clone(),
-                                font_size: 30.,
-                                color: if you { Color::PURPLE } else { Color::WHITE },
-                            },
-                        ),
-                        ..default()
-                    })
-                    .id();
+            commands
+                .entity(row)
+                .push_children(&[rank_text, name_text, score_text]);
 
-                commands
-                    .entity(row)
-                    .push_children(&[name_container, score_text]);
-
-                commands.entity(container).add_child(row);
-            }
+            commands.entity(container).add_child(row);
         }
-
-        **refreshing = false;
     }
 }
 
@@ -219,6 +212,27 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         font_size: 60.0,
         color: TEXT_COLOR,
     };
+
+    let root = commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    top: Val::Px(0.),
+                    left: Val::Px(0.),
+                    ..default()
+                },
+                size: Size {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                },
+                ..default()
+            },
+            color: Color::NONE.into(),
+            ..default()
+        })
+        .insert(LeaderboardMarker)
+        .id();
 
     let container = commands
         .spawn_bundle(NodeBundle {
@@ -232,7 +246,6 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
             color: Color::rgb(0.1, 0.1, 0.1).into(),
             ..default()
         })
-        .insert(LeaderboardMarker)
         .id();
 
     let title = commands
@@ -247,10 +260,10 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         )
         .id();
 
-    let refreshing = commands
+    let loading = commands
         .spawn_bundle(
             TextBundle::from_section(
-                "Refreshing...",
+                "Loading...",
                 TextStyle {
                     font: assets.font.clone(),
                     font_size: 30.0,
@@ -265,7 +278,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
                 ..default()
             }),
         )
-        .insert(RefreshingText)
+        .insert(LoadingText)
         .id();
 
     let scores_container = commands
@@ -280,29 +293,19 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         .insert(ScoresContainer)
         .id();
 
+    commands.entity(root).push_children(&[container]);
+
     commands
         .entity(container)
-        .push_children(&[title, refreshing, scores_container]);
+        .push_children(&[title, loading, scores_container]);
 }
 
 fn create_player(mut leaderboard: ResMut<Leaderboard>) {
-    info!("b4 create_player {:?}", leaderboard.is_changed());
     leaderboard.create_player(None);
-    // grab a leaderboard at the start so we have something to display while
-    // we wait for it to refresh when the game ends.
-    leaderboard.refresh_leaderboard();
-    info!("after create_player {:?}", leaderboard.is_changed());
 }
 
-fn save_score(
-    race_time: Res<RaceTime>,
-    leaderboard: Res<Leaderboard>,
-    mut refreshing: ResMut<Refreshing>,
-) {
-    info!("b4 sendscore: {:?}", leaderboard.is_changed());
-    leaderboard.send_score(1. / race_time.elapsed_secs());
-    info!("afters sendscore: {:?}", leaderboard.is_changed());
-    **refreshing = true;
+fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
+    leaderboard.send_score(-race_time.elapsed_secs());
 }
 
 fn cleanup(mut commands: Commands, query: Query<Entity, With<LeaderboardMarker>>) {

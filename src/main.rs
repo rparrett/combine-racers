@@ -6,7 +6,7 @@ mod leaderboard;
 mod main_menu;
 mod ui;
 
-use bevy::{gltf::GltfExtras, prelude::*, time::Stopwatch};
+use bevy::{gltf::GltfExtras, log::LogSettings, prelude::*, time::Stopwatch};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
@@ -92,6 +92,10 @@ struct FinishedEvent;
 
 fn main() {
     App::new()
+        .insert_resource(LogSettings {
+            filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
+            level: bevy::log::Level::DEBUG,
+        })
         .insert_resource(ClearColor(Color::BLACK))
         .add_state(GameState::AssetLoading)
         .add_state_to_stage(CoreStage::PostUpdate, GameState::AssetLoading)
@@ -343,7 +347,6 @@ fn display_events(
     finish_line_query: Query<Entity, With<FinishLine>>,
     mut player_query: Query<&mut WheelsOnGround, With<Player>>,
     mut race_time: ResMut<RaceTime>,
-    mut state: ResMut<State<GameState>>,
     mut finished_event: EventWriter<FinishedEvent>,
 ) {
     for collision_event in collision_events.iter() {
