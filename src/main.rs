@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 
 mod countdown;
+mod leaderboard;
 mod main_menu;
 mod ui;
 
@@ -10,6 +11,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
+use leaderboard::LeaderboardPlugin;
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use serde::Deserialize;
@@ -34,11 +36,12 @@ enum GameState {
     AssetLoading,
     MainMenu,
     Playing,
+    Leaderboard,
 }
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[asset(path = "tracktest.glb#Scene0")]
+    #[asset(path = "track_short.glb#Scene0")]
     track: Handle<Scene>,
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
@@ -85,6 +88,8 @@ impl Default for RaceTime {
     }
 }
 
+struct FinishedEvent;
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -103,8 +108,10 @@ fn main() {
         .add_plugin(UiPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(CountdownPlugin)
+        .add_plugin(LeaderboardPlugin)
         //.add_plugin(WireframePlugin)
         .init_resource::<RaceTime>()
+        .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup_game))
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
@@ -114,12 +121,21 @@ fn main() {
                 .with_system(player_dampening)
                 .with_system(track_trick.after(player_dampening)),
         )
+        // Do a limited subset of things in the background while
+        // we're showing the leaderboard.
+        .add_system_set_to_stage(
+            CoreStage::PostUpdate,
+            SystemSet::on_update(GameState::Leaderboard)
+                .with_system(player_dampening)
+                .with_system(camera_follow),
+        )
         .add_system_set(
             SystemSet::on_update(GameState::Playing)
                 .with_system(player_movement)
                 .with_system(boost)
                 .with_system(decorate_track)
-                .with_system(race_time),
+                .with_system(race_time)
+                .with_system(game_finished),
         )
         .run();
 }
@@ -327,6 +343,8 @@ fn display_events(
     finish_line_query: Query<Entity, With<FinishLine>>,
     mut player_query: Query<&mut WheelsOnGround, With<Player>>,
     mut race_time: ResMut<RaceTime>,
+    mut state: ResMut<State<GameState>>,
+    mut finished_event: EventWriter<FinishedEvent>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
@@ -342,8 +360,11 @@ fn display_events(
                         }
                     }
                     (true, false, true) => {
-                        // TODO stop player movement, show leaderboard, etc
                         race_time.pause();
+                        // we have to fire off an event here because you can't
+                        // trigger on_exit and on_enter when changing state from
+                        // a different stage.
+                        finished_event.send(FinishedEvent);
                     }
                     _ => {}
                 }
@@ -363,6 +384,12 @@ fn display_events(
 
     for contact_force_event in contact_force_events.iter() {
         println!("Received contact force event: {:?}", contact_force_event);
+    }
+}
+
+fn game_finished(mut events: EventReader<FinishedEvent>, mut state: ResMut<State<GameState>>) {
+    if events.iter().count() > 0 {
+        state.set(GameState::Leaderboard).unwrap();
     }
 }
 
@@ -464,5 +491,4 @@ fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<P
 
 fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
     race_time.tick(time.delta());
-    info!("{:?}", **race_time);
 }

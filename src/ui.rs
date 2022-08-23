@@ -12,6 +12,9 @@ impl Plugin for UiPlugin {
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
                     .with_system(race_time),
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
             );
     }
 }

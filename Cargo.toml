@@ -12,6 +12,7 @@ bevy_rapier3d = "0.16"
 bevy_asset_loader = "0.12"
 bevy-inspector-egui = "0.12"
 leafwing-input-manager = "0.5.1"
+bevy_jornet = "0.1"
 
 interpolation = "0.2"
 serde_json="*"
