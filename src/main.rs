@@ -10,6 +10,7 @@ mod ui;
 
 use bevy::{gltf::GltfExtras, log::LogSettings, prelude::*, time::Stopwatch};
 use bevy_asset_loader::prelude::*;
+#[cfg(feature = "inspector")]
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
@@ -121,33 +122,36 @@ impl Default for Zoom {
 struct FinishedEvent;
 
 fn main() {
-    App::new()
-        .insert_resource(LogSettings {
-            filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
-            level: bevy::log::Level::DEBUG,
-        })
-        .insert_resource(ClearColor(Color::BLACK))
-        .add_state(GameState::Loading)
-        .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
-        .add_loading_state(
-            LoadingState::new(GameState::Loading)
-                .continue_to_state(GameState::Decorating)
-                .with_collection::<GameAssets>()
-                .with_collection::<AudioAssets>(),
-        )
-        .add_plugins(DefaultPlugins)
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        //.add_plugin(RapierDebugRenderPlugin::default())
-        .add_plugin(WorldInspectorPlugin::new())
-        .add_plugin(InputManagerPlugin::<Action>::default())
-        .add_plugin(UiPlugin)
-        .add_plugin(MainMenuPlugin)
-        .add_plugin(CountdownPlugin)
-        .add_plugin(LeaderboardPlugin)
-        .add_plugin(SettingsPlugin)
-        .add_plugin(SavePlugin)
-        //.add_plugin(WireframePlugin)
-        .init_resource::<RaceTime>()
+    let mut app = App::new();
+
+    app.insert_resource(LogSettings {
+        filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
+        level: bevy::log::Level::DEBUG,
+    })
+    .insert_resource(ClearColor(Color::BLACK))
+    .add_state(GameState::Loading)
+    .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
+    .add_loading_state(
+        LoadingState::new(GameState::Loading)
+            .continue_to_state(GameState::Decorating)
+            .with_collection::<GameAssets>()
+            .with_collection::<AudioAssets>(),
+    )
+    .add_plugins(DefaultPlugins)
+    .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+    //.add_plugin(RapierDebugRenderPlugin::default())
+    .add_plugin(InputManagerPlugin::<Action>::default())
+    .add_plugin(UiPlugin)
+    .add_plugin(MainMenuPlugin)
+    .add_plugin(CountdownPlugin)
+    .add_plugin(LeaderboardPlugin)
+    .add_plugin(SettingsPlugin)
+    .add_plugin(SavePlugin);
+
+    #[cfg(feature = "inspector")]
+    app.add_plugin(WorldInspectorPlugin::new());
+
+    app.init_resource::<RaceTime>()
         .init_resource::<Zoom>()
         .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))

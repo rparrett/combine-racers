@@ -4,7 +4,6 @@ For Bevy Jam 2
 
 ## TODO
 
-- [ ] add feature for bevy_inspector_egui
 - [ ] chrome audio fix
 - [ ] webgl flicker fix (if no skybox or parallax)
 - [ ] collision with track and vehicle body should reset trick
