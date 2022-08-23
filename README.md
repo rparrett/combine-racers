@@ -14,7 +14,6 @@ For Bevy Jam 2
 - [ ] "fakie" modifier
 - [ ] art
 - [ ] (stretch) sticky patch
-- [ ] jornet
 - [ ] downforce?
 - [ ] restart button (mid-race)
 - [ ] navigate ui with gamepad
