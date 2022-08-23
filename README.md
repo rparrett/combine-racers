@@ -21,3 +21,4 @@ For Bevy Jam 2
 - [ ] input bindings graphic
 - [ ] add feature for bevy_inspector_egui
 - [ ] (pre-release) start fresh leaderboard
+- [ ] handle leaderboard failure(s)
