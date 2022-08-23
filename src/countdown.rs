@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use interpolation::Ease;
 
-use crate::{ui::TrickText, GameState, RaceTime};
+use crate::{ui::TrickText, AudioAssets, GameState, RaceTime};
 
 pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
@@ -35,9 +35,15 @@ fn update(
     mut query: Query<&mut CountdownTimer>,
     mut text_query: Query<&mut Text, With<TrickText>>,
     mut race_time: ResMut<RaceTime>,
+    audio: Res<Audio>,
+    game_audio: Res<AudioAssets>,
 ) {
     for mut timer in query.iter_mut() {
         if !timer.countdown.finished() {
+            if timer.countdown.elapsed_secs() == 0.0 {
+                audio.play(game_audio.three_two_one.clone());
+            }
+
             timer.countdown.tick(time.delta());
 
             for mut text in text_query.iter_mut() {

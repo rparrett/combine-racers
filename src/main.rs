@@ -47,6 +47,11 @@ struct GameAssets {
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
 }
+#[derive(AssetCollection)]
+struct AudioAssets {
+    #[asset(path = "combine-racers-321go.ogg")]
+    three_two_one: Handle<AudioSource>,
+}
 
 #[derive(Component)]
 struct VertexDebugger;
@@ -103,7 +108,8 @@ fn main() {
         .add_loading_state(
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Decorating)
-                .with_collection::<GameAssets>(),
+                .with_collection::<GameAssets>()
+                .with_collection::<AudioAssets>(),
         )
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
