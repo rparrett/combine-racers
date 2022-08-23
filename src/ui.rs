@@ -15,7 +15,8 @@ impl Plugin for UiPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
-            );
+            )
+            .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup));
     }
 }
 
@@ -144,5 +145,14 @@ fn race_time(time: Res<RaceTime>, mut query: Query<&mut Text, With<RaceTimeText>
 
     for mut text in query.iter_mut() {
         text.sections[0].value = format!("{:.3}", time.elapsed_secs());
+    }
+}
+
+fn cleanup(
+    mut commands: Commands,
+    query: Query<Entity, Or<(With<RaceTimeText>, With<TrickText>)>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }

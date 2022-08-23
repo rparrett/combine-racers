@@ -375,7 +375,7 @@ fn play_again_button(
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Clicked {
-            state.set(GameState::Playing).unwrap();
+            state.set(GameState::MainMenu).unwrap();
         }
     }
 }

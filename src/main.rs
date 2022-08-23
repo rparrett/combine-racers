@@ -117,6 +117,7 @@ fn main() {
         //.add_plugin(WireframePlugin)
         .init_resource::<RaceTime>()
         .add_event::<FinishedEvent>()
+        .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
         .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
         .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
         .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
@@ -155,6 +156,13 @@ enum Action {
     RotateLeft,
     RotateRight,
     Jump,
+}
+
+fn spawn_camera(mut commands: Commands) {
+    commands.spawn_bundle(Camera3dBundle {
+        transform: Transform::from_xyz(0., 0., 100.0),
+        ..Default::default()
+    });
 }
 
 fn decorate_track(

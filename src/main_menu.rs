@@ -86,12 +86,6 @@ const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
 fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
     info!("setup_menu");
 
-    // TODO move to startup system out of state
-    commands.spawn_bundle(Camera3dBundle {
-        transform: Transform::from_xyz(0., 0., 100.0),
-        ..Default::default()
-    });
-
     let button_style = Style {
         size: Size::new(Val::Px(250.0), Val::Px(45.0)),
         margin: UiRect::all(Val::Px(5.0)),
