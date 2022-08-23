@@ -4,19 +4,29 @@ For Bevy Jam 2
 
 ## TODO
 
-- [ ] jump needs a cooldown timer
-- [ ] collision with track and combine body should reset trick
-- [ ] audio
+- [ ] add feature for bevy_inspector_egui
 - [ ] chrome audio fix
 - [ ] webgl flicker fix (if no skybox or parallax)
-- [ ] barrel roll
-- [ ] "fakie" modifier
+- [ ] collision with track and vehicle body should reset trick
 - [ ] art
-- [ ] (stretch) sticky patch
+  - [ ] Vehicle
+  - [ ] Finish line
+  - [ ] input bindings graphic
+- [ ] audio
+  - [X] 3 2 1 go
+  - [ ] Music
+  - [ ] Trick success
+  - [ ] Bonk
+- [ ] restart button (mid-race) (select/esc?)
+- [ ] "fakie" modifier for tricks
+- [ ] (stretch goal) sticky patches on track
+- [ ] (stretch goal) barrel roll trick
+- [ ] should jump have a cooldown timer?
 - [ ] downforce?
-- [ ] restart button (mid-race)
 - [ ] navigate ui with gamepad
-- [ ] input bindings graphic
-- [ ] add feature for bevy_inspector_egui
-- [ ] (pre-release) start fresh leaderboard
 - [ ] handle leaderboard failure(s)
+- [ ] use our own method of generating leaderboard names to distinguish us somewhat
+- [ ] local storage of
+  - [ ] music and keyboard settings
+  - [ ] leaderboard player (id? name?)
+- [ ] (pre-release) start fresh leaderboard
