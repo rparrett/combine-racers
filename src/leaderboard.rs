@@ -15,9 +15,7 @@ impl Plugin for LeaderboardPlugin {
             app.init_resource::<Refreshing>()
                 .init_resource::<RefreshTimer>()
                 .add_plugin(JornetPlugin::with_leaderboard(id, key))
-                .add_system_set(
-                    SystemSet::on_enter(GameState::AssetLoading).with_system(create_player),
-                )
+                .add_system_set(SystemSet::on_enter(GameState::Loading).with_system(create_player))
                 .add_system_set(
                     SystemSet::on_enter(GameState::Leaderboard)
                         .with_system(save_score)
@@ -26,7 +24,9 @@ impl Plugin for LeaderboardPlugin {
                 .add_system_set(
                     SystemSet::on_update(GameState::Leaderboard)
                         .with_system(initiate_refresh)
-                        .with_system(update_leaderboard),
+                        .with_system(update_leaderboard)
+                        .with_system(buttons)
+                        .with_system(play_again_button),
                 )
                 .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup));
         }
@@ -57,6 +57,9 @@ struct LoadingText;
 struct LeaderboardMarker;
 #[derive(Component)]
 struct ScoresContainer;
+
+#[derive(Component)]
+struct PlayAgainButton;
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
@@ -106,6 +109,9 @@ fn update_leaderboard(
         commands.entity(container).despawn_descendants();
 
         let leaderboard = leaderboard.get_leaderboard();
+
+        // TODO check if leaderboard is empty, which seems to happen occasionally. Spawn a
+        // message about that.
 
         let has_us = leaderboard
             .iter()
@@ -212,6 +218,18 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         font_size: 60.0,
         color: TEXT_COLOR,
     };
+    let button_style = Style {
+        size: Size::new(Val::Px(250.0), Val::Px(45.0)),
+        margin: UiRect::all(Val::Px(5.0)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    };
+    let button_text_style = TextStyle {
+        font: assets.font.clone(),
+        font_size: 30.0,
+        color: TEXT_COLOR,
+    };
 
     let root = commands
         .spawn_bundle(NodeBundle {
@@ -285,6 +303,10 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         .spawn_bundle(NodeBundle {
             style: Style {
                 flex_direction: FlexDirection::ColumnReverse,
+                margin: UiRect {
+                    bottom: Val::Px(10.0),
+                    ..default()
+                },
                 ..default()
             },
             color: Color::NONE.into(),
@@ -293,11 +315,26 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         .insert(ScoresContainer)
         .id();
 
+    let play_again = commands
+        .spawn_bundle(ButtonBundle {
+            style: button_style.clone(),
+            color: NORMAL_BUTTON.into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle::from_section(
+                "Play Again",
+                button_text_style.clone(),
+            ));
+        })
+        .insert(PlayAgainButton)
+        .id();
+
     commands.entity(root).push_children(&[container]);
 
     commands
         .entity(container)
-        .push_children(&[title, loading, scores_container]);
+        .push_children(&[title, loading, scores_container, play_again]);
 }
 
 fn create_player(mut leaderboard: ResMut<Leaderboard>) {
@@ -306,6 +343,41 @@ fn create_player(mut leaderboard: ResMut<Leaderboard>) {
 
 fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
     leaderboard.send_score(-race_time.elapsed_secs());
+}
+
+fn buttons(
+    mut interaction_query: Query<
+        (&Interaction, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
+fn play_again_button(
+    mut state: ResMut<State<GameState>>,
+    interaction_query: Query<
+        &Interaction,
+        (Changed<Interaction>, With<Button>, With<PlayAgainButton>),
+    >,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Clicked {
+            state.set(GameState::Playing).unwrap();
+        }
+    }
 }
 
 fn cleanup(mut commands: Commands, query: Query<Entity, With<LeaderboardMarker>>) {

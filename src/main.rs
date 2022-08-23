@@ -33,7 +33,8 @@ struct Wheel;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
-    AssetLoading,
+    Loading,
+    Decorating,
     MainMenu,
     Playing,
     Leaderboard,
@@ -97,11 +98,11 @@ fn main() {
             level: bevy::log::Level::DEBUG,
         })
         .insert_resource(ClearColor(Color::BLACK))
-        .add_state(GameState::AssetLoading)
-        .add_state_to_stage(CoreStage::PostUpdate, GameState::AssetLoading)
+        .add_state(GameState::Loading)
+        .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
         .add_loading_state(
-            LoadingState::new(GameState::AssetLoading)
-                .continue_to_state(GameState::MainMenu)
+            LoadingState::new(GameState::Loading)
+                .continue_to_state(GameState::Decorating)
                 .with_collection::<GameAssets>(),
         )
         .add_plugins(DefaultPlugins)
@@ -116,7 +117,9 @@ fn main() {
         //.add_plugin(WireframePlugin)
         .init_resource::<RaceTime>()
         .add_event::<FinishedEvent>()
-        .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup_game))
+        .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
+        .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
+        .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
             SystemSet::on_update(GameState::Playing)
@@ -137,10 +140,10 @@ fn main() {
             SystemSet::on_update(GameState::Playing)
                 .with_system(player_movement)
                 .with_system(boost)
-                .with_system(decorate_track)
                 .with_system(race_time)
                 .with_system(game_finished),
         )
+        .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
         .run();
 }
 
@@ -160,8 +163,12 @@ fn decorate_track(
     mesh_query: Query<(Entity, &Handle<Mesh>), Without<Collider>>,
     meshes: Res<Assets<Mesh>>,
     mut visibility_query: Query<&mut Visibility>,
+    mut state: ResMut<State<GameState>>,
 ) {
+    let mut decorated = false;
+
     for (entity, extras, children) in query.iter() {
+        decorated = true;
         #[derive(Deserialize)]
         struct TrackExtra {
             object_type: String,
@@ -206,6 +213,10 @@ fn decorate_track(
             }
         }
     }
+
+    if decorated {
+        state.set(GameState::MainMenu).unwrap();
+    }
 }
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
@@ -220,7 +231,9 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
             ..default()
         }
     });
+}
 
+fn spawn_player(mut commands: Commands) {
     let mut axes = LockedAxes::empty();
     axes.insert(LockedAxes::ROTATION_LOCKED_X);
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
@@ -494,4 +507,15 @@ fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<P
 
 fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
     race_time.tick(time.delta());
+}
+
+fn reset(
+    mut commands: Commands,
+    player_query: Query<Entity, With<Player>>,
+    mut race_time: ResMut<RaceTime>,
+) {
+    for entity in player_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    race_time.reset();
 }

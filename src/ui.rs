@@ -7,7 +7,7 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TrickTextTimer>()
-            .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup))
+            .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(setup))
             .add_system_set(
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
