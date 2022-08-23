@@ -13,7 +13,7 @@ use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
 use leaderboard::LeaderboardPlugin;
 use leafwing_input_manager::prelude::*;
-use main_menu::MainMenuPlugin;
+use main_menu::{KeyboardLayout, KeyboardSetting, MainMenuPlugin};
 use serde::Deserialize;
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
@@ -233,21 +233,33 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     });
 }
 
-fn spawn_player(mut commands: Commands) {
+fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
     let mut axes = LockedAxes::empty();
     axes.insert(LockedAxes::ROTATION_LOCKED_X);
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
     axes.insert(LockedAxes::TRANSLATION_LOCKED_Z);
 
-    let mut input_map = InputMap::new([
-        (KeyCode::Left, Action::Left),
-        (KeyCode::A, Action::Left),
-        (KeyCode::Right, Action::Right),
-        (KeyCode::D, Action::Right),
-        (KeyCode::Q, Action::RotateLeft),
-        (KeyCode::E, Action::RotateRight),
-        (KeyCode::Space, Action::Jump),
-    ]);
+    let mut input_map = match **keyboard {
+        KeyboardLayout::Qwerty => InputMap::new([
+            (KeyCode::Left, Action::Left),
+            (KeyCode::A, Action::Left),
+            (KeyCode::Right, Action::Right),
+            (KeyCode::D, Action::Right),
+            (KeyCode::Q, Action::RotateLeft),
+            (KeyCode::E, Action::RotateRight),
+            (KeyCode::Space, Action::Jump),
+        ]),
+        KeyboardLayout::Azerty => InputMap::new([
+            (KeyCode::Left, Action::Left),
+            (KeyCode::Q, Action::Left),
+            (KeyCode::Right, Action::Right),
+            (KeyCode::D, Action::Right),
+            (KeyCode::A, Action::RotateLeft),
+            (KeyCode::E, Action::RotateRight),
+            (KeyCode::Space, Action::Jump),
+        ]),
+    };
+
     input_map.insert_multiple([
         (GamepadButtonType::DPadLeft, Action::Left),
         (GamepadButtonType::DPadRight, Action::Right),

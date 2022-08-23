@@ -9,7 +9,6 @@ For Bevy Jam 2
 - [ ] audio
 - [ ] chrome audio fix
 - [ ] webgl flicker fix (if no skybox or parallax)
-- [ ] azerty
 - [ ] barrel roll
 - [ ] "fakie" modifier
 - [ ] art
