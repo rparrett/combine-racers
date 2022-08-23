@@ -11,6 +11,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
+use interpolation::{Ease, Lerp};
 use leaderboard::LeaderboardPlugin;
 use leafwing_input_manager::prelude::*;
 use main_menu::{KeyboardLayout, KeyboardSetting, MainMenuPlugin};
@@ -42,8 +43,10 @@ enum GameState {
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[asset(path = "track_short.glb#Scene0")]
+    #[asset(path = "tracktest.glb#Scene0")]
     track: Handle<Scene>,
+    #[asset(path = "combine.glb#Scene0")]
+    combine: Handle<Scene>,
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
 }
@@ -93,6 +96,23 @@ impl Default for RaceTime {
         Self(watch)
     }
 }
+struct Zoom {
+    from: f32,
+    target: f32,
+    timer: Timer,
+}
+impl Default for Zoom {
+    fn default() -> Self {
+        let mut timer = Timer::from_seconds(0.5, false);
+        timer.pause();
+
+        Self {
+            from: 20.,
+            target: 100.,
+            timer,
+        }
+    }
+}
 
 struct FinishedEvent;
 
@@ -113,7 +133,7 @@ fn main() {
         )
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierDebugRenderPlugin::default())
+        //.add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(InputManagerPlugin::<Action>::default())
         .add_plugin(UiPlugin)
@@ -122,6 +142,7 @@ fn main() {
         .add_plugin(LeaderboardPlugin)
         //.add_plugin(WireframePlugin)
         .init_resource::<RaceTime>()
+        .init_resource::<Zoom>()
         .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
         .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
@@ -133,7 +154,8 @@ fn main() {
                 .with_system(camera_follow)
                 .with_system(display_events)
                 .with_system(player_dampening)
-                .with_system(track_trick.after(player_dampening)),
+                .with_system(track_trick.after(player_dampening))
+                .with_system(zoom.after(camera_follow)),
         )
         // Do a limited subset of things in the background while
         // we're showing the leaderboard.
@@ -148,8 +170,10 @@ fn main() {
                 .with_system(player_movement)
                 .with_system(boost)
                 .with_system(race_time)
-                .with_system(game_finished),
+                .with_system(game_finished)
+                .with_system(start_zoom),
         )
+        .add_system_set(SystemSet::on_exit(GameState::Playing))
         .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
         .run();
 }
@@ -162,6 +186,7 @@ enum Action {
     RotateLeft,
     RotateRight,
     Jump,
+    ToggleZoom,
 }
 
 fn spawn_camera(mut commands: Commands) {
@@ -235,7 +260,13 @@ fn decorate_track(
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     commands.spawn_bundle(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_rotation_x(-0.9)),
+        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.1, 0.0)),
+        ..default()
+    });
+
+    // ambient light
+    commands.insert_resource(AmbientLight {
+        brightness: 0.5,
         ..default()
     });
 
@@ -247,7 +278,11 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     });
 }
 
-fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
+fn spawn_player(
+    mut commands: Commands,
+    keyboard: Res<KeyboardSetting>,
+    game_assets: Res<GameAssets>,
+) {
     let mut axes = LockedAxes::empty();
     axes.insert(LockedAxes::ROTATION_LOCKED_X);
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
@@ -262,6 +297,7 @@ fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
             (KeyCode::Q, Action::RotateLeft),
             (KeyCode::E, Action::RotateRight),
             (KeyCode::Space, Action::Jump),
+            (KeyCode::Z, Action::ToggleZoom),
         ]),
         KeyboardLayout::Azerty => InputMap::new([
             (KeyCode::Left, Action::Left),
@@ -271,6 +307,7 @@ fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
             (KeyCode::A, Action::RotateLeft),
             (KeyCode::E, Action::RotateRight),
             (KeyCode::Space, Action::Jump),
+            (KeyCode::W, Action::ToggleZoom),
         ]),
     };
 
@@ -283,7 +320,10 @@ fn spawn_player(mut commands: Commands, keyboard: Res<KeyboardSetting>) {
     ]);
 
     commands
-        .spawn_bundle(TransformBundle::from(Transform::from_xyz(0., 0., 0.)))
+        .spawn_bundle(SceneBundle {
+            scene: game_assets.combine.clone(),
+            ..default()
+        })
         .insert(RigidBody::Dynamic)
         .insert(axes)
         .insert(Velocity::default())
@@ -371,7 +411,6 @@ fn camera_follow(
         for mut camera_transform in camera.iter_mut() {
             camera_transform.translation.x = player_transform.translation.x;
             camera_transform.translation.y = player_transform.translation.y;
-            camera_transform.translation.z = 100.;
         }
     }
 }
@@ -531,6 +570,42 @@ fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<P
 
 fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
     race_time.tick(time.delta());
+}
+
+fn start_zoom(query: Query<&ActionState<Action>, With<Player>>, mut zoom: ResMut<Zoom>) {
+    let action_state = query.single();
+    if action_state.just_pressed(Action::ToggleZoom) {
+        if zoom.timer.paused() {
+            (zoom.target, zoom.from) = (zoom.from, zoom.target);
+
+            zoom.timer.reset();
+            zoom.timer.unpause();
+        }
+    }
+}
+
+fn zoom(
+    time: Res<Time>,
+    mut zoom: ResMut<Zoom>,
+    mut camera_query: Query<&mut Transform, With<Camera3d>>,
+) {
+    if zoom.timer.paused() {
+        return;
+    }
+
+    zoom.timer.tick(time.delta());
+
+    let mut camera = camera_query.single_mut();
+
+    let z = zoom
+        .from
+        .lerp(&zoom.target, &Ease::quadratic_in_out(zoom.timer.percent()));
+
+    camera.translation.z = z;
+
+    if zoom.timer.just_finished() {
+        zoom.timer.pause();
+    }
 }
 
 fn reset(
