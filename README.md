@@ -19,3 +19,5 @@ For Bevy Jam 2
 - [ ] restart button (mid-race)
 - [ ] navigate ui with gamepad
 - [ ] input bindings graphic
+- [ ] add feature for bevy_inspector_egui
+- [ ] (pre-release) start fresh leaderboard
