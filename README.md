@@ -27,6 +27,6 @@ For Bevy Jam 2
 - [ ] handle leaderboard failure(s)
 - [ ] use our own method of generating leaderboard names to distinguish us somewhat
 - [ ] local storage of
-  - [ ] music and keyboard settings
+  - [X] music and keyboard settings
   - [ ] leaderboard player (id? name?)
 - [ ] (pre-release) start fresh leaderboard

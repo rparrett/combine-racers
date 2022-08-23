@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 
-use crate::{GameAssets, GameState};
+use crate::{
+    settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
+    GameAssets, GameState,
+};
 
 pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<KeyboardSetting>()
-            .init_resource::<MusicSetting>()
-            .init_resource::<SfxSetting>()
-            .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
+        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
             .add_system_set(
                 SystemSet::on_update(GameState::MainMenu)
                     .with_system(buttons)
@@ -18,43 +18,6 @@ impl Plugin for MainMenuPlugin {
                     .with_system(sfx_setting_button),
             )
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(cleanup_menu));
-    }
-}
-
-#[derive(Default, Deref, DerefMut)]
-pub struct KeyboardSetting(KeyboardLayout);
-#[derive(Debug)]
-pub enum KeyboardLayout {
-    Qwerty,
-    Azerty,
-}
-impl Default for KeyboardLayout {
-    fn default() -> Self {
-        Self::Qwerty
-    }
-}
-impl std::fmt::Display for KeyboardLayout {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Qwerty => write!(f, "QWERTY"),
-            Self::Azerty => write!(f, "AZERTY"),
-        }
-    }
-}
-
-#[derive(Deref, DerefMut)]
-pub struct MusicSetting(u8);
-impl Default for MusicSetting {
-    fn default() -> Self {
-        Self(100)
-    }
-}
-
-#[derive(Deref, DerefMut)]
-pub struct SfxSetting(u8);
-impl Default for SfxSetting {
-    fn default() -> Self {
-        Self(100)
     }
 }
 
@@ -83,7 +46,13 @@ const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
 
-fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
+fn setup_menu(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    sfx: Res<SfxSetting>,
+    music: Res<MusicSetting>,
+    keyboard: Res<KeyboardSetting>,
+) {
     info!("setup_menu");
 
     let button_style = Style {
@@ -166,7 +135,7 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle::from_section(
-                    "QWERTY",
+                    format!("{}", **keyboard),
                     button_text_style.clone(),
                 ))
                 .insert(KeyboardSettingButtonText);
@@ -192,7 +161,7 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle::from_section(
-                    "SFX 100%",
+                    format!("SFX {}%", **sfx),
                     button_text_style.clone(),
                 ))
                 .insert(SfxSettingButtonText);
@@ -208,7 +177,10 @@ fn setup_menu(mut commands: Commands, assets: Res<GameAssets>) {
         })
         .with_children(|parent| {
             parent
-                .spawn_bundle(TextBundle::from_section("Music 100%", button_text_style))
+                .spawn_bundle(TextBundle::from_section(
+                    format!("Music {}%", **music),
+                    button_text_style,
+                ))
                 .insert(MusicSettingButtonText);
         })
         .insert(MusicSettingButton)

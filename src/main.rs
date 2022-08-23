@@ -4,6 +4,8 @@
 mod countdown;
 mod leaderboard;
 mod main_menu;
+mod save;
+mod settings;
 mod ui;
 
 use bevy::{gltf::GltfExtras, log::LogSettings, prelude::*, time::Stopwatch};
@@ -14,8 +16,10 @@ use countdown::CountdownPlugin;
 use interpolation::{Ease, Lerp};
 use leaderboard::LeaderboardPlugin;
 use leafwing_input_manager::prelude::*;
-use main_menu::{KeyboardLayout, KeyboardSetting, MainMenuPlugin};
+use main_menu::MainMenuPlugin;
+use save::SavePlugin;
 use serde::Deserialize;
+use settings::{KeyboardLayout, KeyboardSetting, SettingsPlugin};
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -140,6 +144,8 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(CountdownPlugin)
         .add_plugin(LeaderboardPlugin)
+        .add_plugin(SettingsPlugin)
+        .add_plugin(SavePlugin)
         //.add_plugin(WireframePlugin)
         .init_resource::<RaceTime>()
         .init_resource::<Zoom>()
