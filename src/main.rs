@@ -62,7 +62,7 @@ struct AudioAssets {
 }
 
 #[derive(Component)]
-struct VertexDebugger;
+struct LightContainer;
 
 #[derive(Component, Deref, DerefMut)]
 struct SpeedLimit(f32);
@@ -269,14 +269,35 @@ fn decorate_track(
 }
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
-    commands.spawn_bundle(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.1, 0.0)),
-        ..default()
-    });
+    // commands.spawn_bundle(DirectionalLightBundle {
+    //     directional_light: DirectionalLight {
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.1, 0.0)),
+
+    //     ..default()
+    // });
+
+    commands
+        .spawn_bundle(SpatialBundle::default())
+        .with_children(|parent| {
+            parent.spawn_bundle(PointLightBundle {
+                point_light: PointLight {
+                    shadows_enabled: true,
+                    intensity: 1000000.,
+                    range: 200.,
+                    ..default()
+                },
+                transform: Transform::from_xyz(20., 20., 50.),
+                ..default()
+            });
+        })
+        .insert(LightContainer);
 
     // ambient light
     commands.insert_resource(AmbientLight {
-        brightness: 0.5,
+        brightness: 0.2,
         ..default()
     });
 
@@ -416,11 +437,17 @@ fn player_movement(
 fn camera_follow(
     player: Query<&Transform, With<Player>>,
     mut camera: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
+    mut light: Query<&mut Transform, (With<LightContainer>, Without<Camera3d>, Without<Player>)>,
 ) {
     for player_transform in player.iter() {
         for mut camera_transform in camera.iter_mut() {
             camera_transform.translation.x = player_transform.translation.x;
             camera_transform.translation.y = player_transform.translation.y;
+        }
+
+        for (mut light_transform) in light.iter_mut() {
+            light_transform.translation.x = player_transform.translation.x;
+            light_transform.translation.y = player_transform.translation.y;
         }
     }
 }
