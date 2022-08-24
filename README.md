@@ -8,7 +8,7 @@ For Bevy Jam 2
 - [ ] webgl flicker fix (if no skybox or parallax)
 - [ ] collision with track and vehicle body should reset trick
 - [ ] art
-  - [ ] Vehicle
+  - [X] Vehicle
   - [ ] Finish line
   - [ ] input bindings graphic
 - [ ] audio
