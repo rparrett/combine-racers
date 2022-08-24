@@ -110,12 +110,12 @@ struct Zoom {
 }
 impl Default for Zoom {
     fn default() -> Self {
-        let mut timer = Timer::from_seconds(0.5, false);
+        let mut timer = Timer::from_seconds(0.7, false);
         timer.pause();
 
         Self {
             from: 20.,
-            target: 100.,
+            target: 80.,
             timer,
         }
     }
@@ -202,9 +202,9 @@ enum Action {
     ToggleZoom,
 }
 
-fn spawn_camera(mut commands: Commands) {
+fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
     commands.spawn_bundle(Camera3dBundle {
-        transform: Transform::from_xyz(0., 0., 100.0),
+        transform: Transform::from_xyz(0., 0., zoom.target),
         ..Default::default()
     });
 }
