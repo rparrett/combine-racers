@@ -7,7 +7,8 @@ pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup))
-            .add_system_set(SystemSet::on_update(GameState::Playing).with_system(update));
+            .add_system_set(SystemSet::on_update(GameState::Playing).with_system(update))
+            .add_system_set(SystemSet::on_exit(GameState::Playing).with_system(cleanup));
     }
 }
 
@@ -72,5 +73,11 @@ fn update(
                     Color::rgba(1., 0., 0., Ease::cubic_out(timer.go.percent_left()));
             }
         }
+    }
+}
+
+fn cleanup(mut commands: Commands, query: Query<Entity, With<CountdownTimer>>) {
+    for entity in &query {
+        commands.entity(entity).despawn();
     }
 }
