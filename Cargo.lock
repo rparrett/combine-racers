@@ -558,7 +558,7 @@ dependencies = [
 [[package]]
 name = "bevy_jornet"
 version = "0.1.3"
-source = "git+https://github.com/rparrett/jornet?branch=jam#b2bc5645e5d65d7adfd603c09c703ac8bf025c0b"
+source = "git+https://github.com/rparrett/jornet?branch=jam#008c41358e49c7a17ba979af3642ff4f4424edd7"
 dependencies = [
  "bevy",
  "hex",
