@@ -31,8 +31,11 @@ const BASE_SPEED_LIMIT: f32 = 20.;
 const BOOST_SPEED_LIMIT: f32 = 30.;
 const BASE_BOOST_TIMER: f32 = 2.;
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Component, Default, Deref, DerefMut)]
 struct WheelsOnGround(u8);
+
+#[derive(Component, Default, Deref, DerefMut)]
+struct BonkStatus(bool);
 
 #[derive(Component)]
 struct Player;
@@ -165,7 +168,7 @@ fn main() {
             CoreStage::PostUpdate,
             SystemSet::on_update(GameState::Playing)
                 .with_system(camera_follow)
-                .with_system(display_events)
+                .with_system(collision_events)
                 .with_system(player_dampening)
                 .with_system(track_trick.after(player_dampening))
                 .with_system(zoom.after(camera_follow)),
@@ -272,16 +275,6 @@ fn decorate_track(
 }
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
-    // commands.spawn_bundle(DirectionalLightBundle {
-    //     directional_light: DirectionalLight {
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.1, 0.0)),
-
-    //     ..default()
-    // });
-
     commands
         .spawn_bundle(SpatialBundle::default())
         .with_children(|parent| {
@@ -361,7 +354,8 @@ fn spawn_player(
         .insert(RigidBody::Dynamic)
         .insert(axes)
         .insert(Velocity::default())
-        .insert(WheelsOnGround(0))
+        .insert(WheelsOnGround::default())
+        .insert(BonkStatus::default())
         .insert(Collider::cuboid(1., 1., 1.))
         .insert(ColliderDebugColor(Color::ORANGE))
         .insert(ExternalImpulse::default())
@@ -455,13 +449,14 @@ fn camera_follow(
     }
 }
 
-fn display_events(
+fn collision_events(
     mut collision_events: EventReader<CollisionEvent>,
     mut contact_force_events: EventReader<ContactForceEvent>,
     wheel_query: Query<Entity, With<Wheel>>,
     track_query: Query<Entity, With<Track>>,
     finish_line_query: Query<Entity, With<FinishLine>>,
-    mut player_query: Query<&mut WheelsOnGround, With<Player>>,
+    body_query: Query<Entity, With<Player>>,
+    mut player_query: Query<(&mut WheelsOnGround, &mut BonkStatus), With<Player>>,
     mut race_time: ResMut<RaceTime>,
     mut finished_event: EventWriter<FinishedEvent>,
 ) {
@@ -471,21 +466,27 @@ fn display_events(
                 let finish_line = finish_line_query.iter_many([e1, e2]).count() > 0;
                 let track = track_query.iter_many([e1, e2]).count() > 0;
                 let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
+                let body = body_query.iter_many([e1, e2]).count() > 0;
 
-                match (wheel, track, finish_line) {
-                    (true, true, false) => {
-                        for mut wheels in player_query.iter_mut() {
-                            wheels.0 += 1;
-                        }
+                if wheel && track {
+                    for (mut wheels, mut bonk) in player_query.iter_mut() {
+                        wheels.0 += 1;
+                        **bonk = false;
                     }
-                    (true, false, true) => {
-                        race_time.pause();
-                        // we have to fire off an event here because you can't
-                        // trigger on_exit and on_enter when changing state from
-                        // a different stage.
-                        finished_event.send(FinishedEvent);
+                }
+
+                if (body || wheel) && finish_line {
+                    race_time.pause();
+                    // we have to fire off an event here because you can't
+                    // trigger on_exit and on_enter when changing state from
+                    // a different stage.
+                    finished_event.send(FinishedEvent);
+                }
+
+                if body && track {
+                    for (_, mut bonk) in player_query.iter_mut() {
+                        **bonk = true;
                     }
-                    _ => {}
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
@@ -493,7 +494,7 @@ fn display_events(
                 let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
 
                 if track && wheel {
-                    for mut wheels in player_query.iter_mut() {
+                    for (mut wheels, _) in player_query.iter_mut() {
                         wheels.0 -= 1;
                     }
                 }
@@ -533,6 +534,7 @@ fn track_trick(
             &mut Rotation,
             &Velocity,
             &WheelsOnGround,
+            &BonkStatus,
             ChangeTrackers<WheelsOnGround>,
             &mut Boost,
         ),
@@ -541,7 +543,13 @@ fn track_trick(
     mut trick_text_timer: ResMut<TrickTextTimer>,
     mut trick_text: Query<&mut Text, With<TrickText>>,
 ) {
-    for (mut rotation, velocity, wheels, wheels_changed, mut boost) in query.iter_mut() {
+    for (mut rotation, velocity, wheels, bonk, wheels_changed, mut boost) in query.iter_mut() {
+        if **bonk {
+            rotation.total = 0.;
+            rotation.front_flips = 0;
+            rotation.back_flips = 0;
+        }
+
         if **wheels == 0 {
             let elapsed = time.delta_seconds();
             let rot = velocity.angvel * elapsed;
