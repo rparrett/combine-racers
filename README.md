@@ -29,3 +29,4 @@ For Bevy Jam 2
   - [X] music and keyboard settings
   - [ ] leaderboard player (id? name?)
 - [ ] (pre-release) start fresh leaderboard
+- [ ] add lava below map?
