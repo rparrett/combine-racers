@@ -9,8 +9,7 @@ mod settings;
 mod ui;
 
 use bevy::{
-    asset::AssetServerSettings, gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap,
-    prelude::*, time::Stopwatch,
+    gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -449,7 +448,7 @@ fn camera_follow(
             camera_transform.translation.y = player_transform.translation.y;
         }
 
-        for (mut light_transform) in light.iter_mut() {
+        for mut light_transform in light.iter_mut() {
             light_transform.translation.x = player_transform.translation.x;
             light_transform.translation.y = player_transform.translation.y;
         }
@@ -615,13 +614,11 @@ fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
 
 fn start_zoom(query: Query<&ActionState<Action>, With<Player>>, mut zoom: ResMut<Zoom>) {
     let action_state = query.single();
-    if action_state.just_pressed(Action::ToggleZoom) {
-        if zoom.timer.paused() {
-            (zoom.target, zoom.from) = (zoom.from, zoom.target);
+    if action_state.just_pressed(Action::ToggleZoom) && zoom.timer.paused() {
+        (zoom.target, zoom.from) = (zoom.from, zoom.target);
 
-            zoom.timer.reset();
-            zoom.timer.unpause();
-        }
+        zoom.timer.reset();
+        zoom.timer.unpause();
     }
 }
 
