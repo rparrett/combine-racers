@@ -22,7 +22,7 @@ use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use save::SavePlugin;
 use serde::Deserialize;
-use settings::{KeyboardLayout, KeyboardSetting, SettingsPlugin};
+use settings::{KeyboardLayout, KeyboardSetting, SettingsPlugin, SfxSetting};
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -64,6 +64,8 @@ struct GameAssets {
 struct AudioAssets {
     #[asset(path = "combine-racers-321go.ogg")]
     three_two_one: Handle<AudioSource>,
+    #[asset(path = "combine-racers-trick.ogg")]
+    trick: Handle<AudioSource>,
 }
 
 #[derive(Component)]
@@ -542,6 +544,9 @@ fn track_trick(
     >,
     mut trick_text_timer: ResMut<TrickTextTimer>,
     mut trick_text: Query<&mut Text, With<TrickText>>,
+    audio: Res<Audio>,
+    game_audio: Res<AudioAssets>,
+    audio_setting: Res<SfxSetting>,
 ) {
     for (mut rotation, velocity, wheels, bonk, wheels_changed, mut boost) in query.iter_mut() {
         if **bonk {
@@ -593,6 +598,11 @@ fn track_trick(
                     text.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
                 }
                 trick_text_timer.reset();
+
+                audio.play_with_settings(
+                    game_audio.trick.clone(),
+                    PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+                );
             }
 
             rotation.total = 0.;

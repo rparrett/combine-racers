@@ -14,7 +14,7 @@ For Bevy Jam 2
 - [ ] audio
   - [X] 3 2 1 go
   - [ ] Music
-  - [ ] Trick success
+  - [X] Trick success
   - [ ] Bonk
 - [ ] restart button (mid-race) (select/esc?)
 - [ ] "fakie" modifier for tricks
