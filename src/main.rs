@@ -289,7 +289,7 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
             parent.spawn_bundle(PointLightBundle {
                 point_light: PointLight {
                     shadows_enabled: true,
-                    intensity: 1000000.,
+                    intensity: 500000.,
                     range: 200.,
                     ..default()
                 },
