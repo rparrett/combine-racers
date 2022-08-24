@@ -8,7 +8,9 @@ mod save;
 mod settings;
 mod ui;
 
-use bevy::{gltf::GltfExtras, log::LogSettings, prelude::*, time::Stopwatch};
+use bevy::{
+    gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
+};
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::WorldInspectorPlugin;
@@ -50,7 +52,7 @@ enum GameState {
 struct GameAssets {
     #[asset(path = "tracktest.glb#Scene0")]
     track: Handle<Scene>,
-    #[asset(path = "combine.glb#Scene0")]
+    #[asset(path = "combine2.glb#Scene0")]
     combine: Handle<Scene>,
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
@@ -128,6 +130,7 @@ fn main() {
         filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
         level: bevy::log::Level::DEBUG,
     })
+    .insert_resource(PointLightShadowMap { size: 2048 })
     .insert_resource(ClearColor(Color::BLACK))
     .add_state(GameState::Loading)
     .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
