@@ -9,7 +9,8 @@ mod settings;
 mod ui;
 
 use bevy::{
-    gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
+    asset::AssetServerSettings, gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap,
+    prelude::*, time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -52,7 +53,7 @@ enum GameState {
 struct GameAssets {
     #[asset(path = "tracktest.glb#Scene0")]
     track: Handle<Scene>,
-    #[asset(path = "combine2.glb#Scene0")]
+    #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,
     #[asset(path = "NanumPenScript-Regular.ttf")]
     font: Handle<Font>,
