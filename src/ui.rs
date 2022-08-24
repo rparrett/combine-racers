@@ -16,7 +16,10 @@ impl Plugin for UiPlugin {
             .add_system_set(
                 SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
             )
-            .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup));
+            // Keep displaying game UI until the player is done mentally processing their failure
+            // and finally presses that "play again" button.
+            .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup))
+            .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(cleanup));
     }
 }
 

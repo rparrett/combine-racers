@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 
 mod countdown;
+mod game_over;
 mod leaderboard;
 mod main_menu;
 mod save;
@@ -16,6 +17,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
+use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
 use leaderboard::LeaderboardPlugin;
 use leafwing_input_manager::prelude::*;
@@ -49,11 +51,12 @@ enum GameState {
     MainMenu,
     Playing,
     Leaderboard,
+    GameOver,
 }
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[asset(path = "tracktest.glb#Scene0")]
+    #[asset(path = "track_short.glb#Scene0")]
     track: Handle<Scene>,
     #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,
@@ -153,6 +156,7 @@ fn main() {
     .add_plugin(MainMenuPlugin)
     .add_plugin(CountdownPlugin)
     .add_plugin(LeaderboardPlugin)
+    .add_plugin(GameOverPlugin)
     .add_plugin(SettingsPlugin)
     .add_plugin(SavePlugin);
 
@@ -189,10 +193,12 @@ fn main() {
                 .with_system(boost)
                 .with_system(race_time)
                 .with_system(game_finished)
-                .with_system(start_zoom),
+                .with_system(start_zoom)
+                .with_system(reset_action),
         )
         .add_system_set(SystemSet::on_exit(GameState::Playing))
         .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
+        .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(reset))
         .run();
 }
 
@@ -205,6 +211,7 @@ enum Action {
     RotateRight,
     Jump,
     ToggleZoom,
+    Reset,
 }
 
 fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
@@ -327,6 +334,7 @@ fn spawn_player(
             (KeyCode::E, Action::RotateRight),
             (KeyCode::Space, Action::Jump),
             (KeyCode::Z, Action::ToggleZoom),
+            (KeyCode::Escape, Action::Reset),
         ]),
         KeyboardLayout::Azerty => InputMap::new([
             (KeyCode::Left, Action::Left),
@@ -337,6 +345,7 @@ fn spawn_player(
             (KeyCode::E, Action::RotateRight),
             (KeyCode::Space, Action::Jump),
             (KeyCode::W, Action::ToggleZoom),
+            (KeyCode::Escape, Action::Reset),
         ]),
     };
 
@@ -346,6 +355,8 @@ fn spawn_player(
         (GamepadButtonType::LeftTrigger, Action::RotateLeft),
         (GamepadButtonType::RightTrigger, Action::RotateRight),
         (GamepadButtonType::South, Action::Jump),
+        (GamepadButtonType::North, Action::ToggleZoom),
+        (GamepadButtonType::Select, Action::Reset),
     ]);
 
     commands
@@ -661,6 +672,16 @@ fn zoom(
 
     if zoom.timer.just_finished() {
         zoom.timer.pause();
+    }
+}
+
+fn reset_action(
+    query: Query<&ActionState<Action>, With<Player>>,
+    mut state: ResMut<State<GameState>>,
+) {
+    let action_state = query.single();
+    if action_state.just_pressed(Action::Reset) {
+        state.set(GameState::GameOver).unwrap();
     }
 }
 

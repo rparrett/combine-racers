@@ -15,7 +15,6 @@ For Bevy Jam 2
   - [ ] Music
   - [X] Trick success
   - [ ] Bonk
-- [ ] restart button (mid-race) (select/esc?)
 - [ ] "fakie" modifier for tricks
 - [ ] trick text should say "BONK!" when you bonk
 - [ ] (stretch goal) sticky patches on track
@@ -30,3 +29,4 @@ For Bevy Jam 2
   - [ ] leaderboard player (id? name?)
 - [ ] (pre-release) start fresh leaderboard
 - [ ] add lava below map?
+- [ ] if leaderboard credentials aren't provided, use gameover screen instead.
