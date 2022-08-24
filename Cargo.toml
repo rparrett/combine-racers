@@ -11,7 +11,8 @@ inspector = ["bevy-inspector-egui"]
 
 [dependencies]
 bevy = { version = "0.8", features = ["wav"] }
-bevy_rapier3d = "0.16"
+# bevy_rapier3d = "0.16"
+bevy_rapier3d = { git = "https://github.com/dimforge/bevy_rapier", rev = "470ac881e157c93bc0cdc4b7060ec70850fef3c1" }
 bevy_asset_loader = "0.12"
 bevy-inspector-egui = { version = "0.12", optional = true }
 leafwing-input-manager = "0.5.1"
