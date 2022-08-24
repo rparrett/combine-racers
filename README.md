@@ -4,7 +4,6 @@ For Bevy Jam 2
 
 ## TODO
 
-- [ ] chrome audio fix
 - [ ] webgl flicker fix (if no skybox or parallax)
 - [ ] art
   - [X] Vehicle
@@ -18,7 +17,7 @@ For Bevy Jam 2
   - [ ] Bonk
 - [ ] restart button (mid-race) (select/esc?)
 - [ ] "fakie" modifier for tricks
-- [ ] trick text should day "BONK!" when you bonk
+- [ ] trick text should say "BONK!" when you bonk
 - [ ] (stretch goal) sticky patches on track
 - [ ] (stretch goal) barrel roll trick
 - [ ] should jump have a cooldown timer?
