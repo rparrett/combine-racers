@@ -5,6 +5,8 @@ use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 
 const SAVE_FILE: &str = "save.ron";
+#[cfg(target_arch = "wasm32")]
+const LOCAL_STORAGE_KEY: &str = "combine-racers-save";
 
 pub struct SavePlugin;
 impl Plugin for SavePlugin {
@@ -23,6 +25,11 @@ struct SaveFile {
 }
 
 pub fn load_system(mut commands: Commands) {
+    commands.insert_resource(SfxSetting::default());
+    commands.insert_resource(MusicSetting::default());
+    commands.insert_resource(KeyboardSetting::default());
+    commands.insert_resource(LeaderboardSetting::default());
+
     #[cfg(not(target_arch = "wasm32"))]
     {
         let file = match std::fs::File::open(SAVE_FILE) {
@@ -38,7 +45,7 @@ pub fn load_system(mut commands: Commands) {
             }
         };
 
-        info!("{:?}", save_file);
+        info!("Loaded settings: {:?}", save_file);
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
@@ -57,7 +64,7 @@ pub fn load_system(mut commands: Commands) {
             _ => return,
         };
 
-        let item = match storage.get_item(SAVE_FILE) {
+        let item = match storage.get_item(LOCAL_STORAGE_KEY) {
             Ok(Some(i)) => i,
             _ => return,
         };
@@ -70,10 +77,12 @@ pub fn load_system(mut commands: Commands) {
             }
         };
 
+        info!("Loaded settings: {:?}", save_file);
+
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
         commands.insert_resource(save_file.keyboard);
-        commands.insert_resource(save_file.name);
+        commands.insert_resource(save_file.leaderboard);
     }
 }
 
@@ -86,13 +95,13 @@ pub fn save_system(
     let sfx_changed = sfx.is_changed() && !sfx.is_added();
     let music_changed = music.is_changed() && !music.is_added();
     let keyboard_changed = keyboard.is_changed() && !keyboard.is_added();
-    let name_changed = leaderboard.is_changed() && !leaderboard.is_added();
+    let leaderboard_changed = leaderboard.is_changed() && !leaderboard.is_added();
 
-    if !sfx_changed && !music_changed && !keyboard_changed && !name_changed {
+    if !sfx_changed && !music_changed && !keyboard_changed && !leaderboard_changed {
         return;
     }
 
-    info!("saving");
+    info!("Saving settings.");
 
     let save_file = SaveFile {
         sfx: sfx.clone(),
@@ -137,7 +146,7 @@ pub fn save_system(
             _ => return,
         };
 
-        if let Err(e) = storage.set_item(SAVE_FILE, data.as_str()) {
+        if let Err(e) = storage.set_item(LOCAL_STORAGE_KEY, data.as_str()) {
             warn!("Failed to store save file: {:?}", e);
         }
     }
