@@ -6,9 +6,8 @@ For Bevy Jam 2
 
 - [ ] Art
   - [X] Vehicle
-  - [ ] Finish line
+  - [X] Finish line
   - [ ] Input bindings graphic
-  - [ ] Track texture?
 - [ ] Audio
   - [X] 3 2 1 go
   - [ ] Swap in final music
@@ -16,9 +15,12 @@ For Bevy Jam 2
   - [X] Bonk
 - [ ] Trick text should say "BONK!" when you bonk
 - [ ] Finish track
-- [ ] Navigate ui with gamepad
 - [ ] Fill in README
 - [ ] Itch
+- [ ] (Stretch goal) Navigate UI with gamepad
+- [ ] (Stretch goal) Boost gauge
+- [ ] (Stretch goal) Speedometer
+- [ ] (Stretch goal) Textures for track and finish line
 - [ ] (Stretch goal) Sticky patches on track
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
