@@ -36,7 +36,7 @@ const BASE_BOOST_TIMER: f32 = 2.;
 #[derive(Component, Default, Deref, DerefMut)]
 struct WheelsOnGround(u8);
 
-#[derive(Component, Default, Deref, DerefMut)]
+#[derive(Component, Debug, Default, Deref, DerefMut)]
 struct BonkStatus(bool);
 
 #[derive(Component)]
@@ -56,7 +56,7 @@ enum GameState {
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[asset(path = "track_short.glb#Scene0")]
+    #[asset(path = "tracktest.glb#Scene0")]
     track: Handle<Scene>,
     #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,
@@ -69,6 +69,8 @@ struct AudioAssets {
     three_two_one: Handle<AudioSource>,
     #[asset(path = "combine-racers-trick.ogg")]
     trick: Handle<AudioSource>,
+    #[asset(path = "combine-racers-bonk.ogg")]
+    bonk: Handle<AudioSource>,
 }
 
 #[derive(Component)]
@@ -194,7 +196,8 @@ fn main() {
                 .with_system(race_time)
                 .with_system(game_finished)
                 .with_system(start_zoom)
-                .with_system(reset_action),
+                .with_system(reset_action)
+                .with_system(bonk_sound),
         )
         .add_system_set(SystemSet::on_exit(GameState::Playing))
         .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
@@ -464,7 +467,6 @@ fn camera_follow(
 
 fn collision_events(
     mut collision_events: EventReader<CollisionEvent>,
-    mut contact_force_events: EventReader<ContactForceEvent>,
     wheel_query: Query<Entity, With<Wheel>>,
     track_query: Query<Entity, With<Track>>,
     finish_line_query: Query<Entity, With<FinishLine>>,
@@ -484,7 +486,13 @@ fn collision_events(
                 if wheel && track {
                     for (mut wheels, mut bonk) in player_query.iter_mut() {
                         wheels.0 += 1;
-                        **bonk = false;
+
+                        if wheels.0 == 2 {
+                            // don't use **bonk, it will trigger change detection
+                            if bonk.0 {
+                                **bonk = false;
+                            }
+                        }
                     }
                 }
 
@@ -498,7 +506,10 @@ fn collision_events(
 
                 if body && track {
                     for (_, mut bonk) in player_query.iter_mut() {
-                        **bonk = true;
+                        // don't use **bonk, it will trigger change detection
+                        if !bonk.0 {
+                            **bonk = true;
+                        }
                     }
                 }
             }
@@ -513,10 +524,6 @@ fn collision_events(
                 }
             }
         }
-    }
-
-    for contact_force_event in contact_force_events.iter() {
-        println!("Received contact force event: {:?}", contact_force_event);
     }
 }
 
@@ -672,6 +679,24 @@ fn zoom(
 
     if zoom.timer.just_finished() {
         zoom.timer.pause();
+    }
+}
+
+fn bonk_sound(
+    audio: Res<Audio>,
+    game_audio: Res<AudioAssets>,
+    audio_setting: Res<SfxSetting>,
+    bonk_query: Query<&BonkStatus, (Changed<BonkStatus>, With<Player>)>,
+) {
+    for bonk in &bonk_query {
+        info!("bonk_sound: {:?}", bonk);
+
+        if **bonk {
+            audio.play_with_settings(
+                game_audio.bonk.clone(),
+                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            );
+        }
     }
 }
 
