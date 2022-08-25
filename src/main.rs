@@ -139,6 +139,8 @@ impl Default for Zoom {
 
 struct FinishedEvent;
 
+const LAVA: f32 = -200.;
+
 fn main() {
     let mut app = App::new();
 
@@ -191,10 +193,16 @@ fn main() {
                 .with_system(zoom.after(camera_follow)),
         )
         // Do a limited subset of things in the background while
-        // we're showing the leaderboard.
+        // we're showing the leaderboard or game over screen
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
             SystemSet::on_update(GameState::Leaderboard)
+                .with_system(player_dampening)
+                .with_system(camera_follow),
+        )
+        .add_system_set_to_stage(
+            CoreStage::PostUpdate,
+            SystemSet::on_update(GameState::GameOver)
                 .with_system(player_dampening)
                 .with_system(camera_follow),
         )
@@ -206,7 +214,8 @@ fn main() {
                 .with_system(game_finished)
                 .with_system(start_zoom)
                 .with_system(reset_action)
-                .with_system(bonk_sound),
+                .with_system(bonk_sound)
+                .with_system(death),
         )
         .add_system_set(SystemSet::on_exit(GameState::Playing))
         .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
@@ -728,6 +737,14 @@ fn music(
         PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
     ));
     commands.insert_resource(MusicController(handle));
+}
+
+fn death(query: Query<&Transform, With<Player>>, mut state: ResMut<State<GameState>>) {
+    for transform in &query {
+        if transform.translation.y < LAVA {
+            state.set(GameState::GameOver).unwrap();
+        }
+    }
 }
 
 fn reset_action(
