@@ -61,7 +61,7 @@ struct GameAssets {
     track: Handle<Scene>,
     #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,
-    #[asset(path = "NanumPenScript-Regular.ttf")]
+    #[asset(path = "NanumPenScript-Tweaked.ttf")]
     font: Handle<Font>,
 }
 #[derive(AssetCollection)]
