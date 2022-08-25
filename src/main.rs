@@ -27,7 +27,7 @@ use save::SavePlugin;
 use serde::Deserialize;
 use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting};
 use std::time::Duration;
-use ui::{TrickText, TrickTextTimer, UiPlugin};
+use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
 const BASE_SPEED_LIMIT: f32 = 20.;
@@ -492,6 +492,7 @@ fn collision_events(
     mut player_query: Query<(&mut WheelsOnGround, &mut BonkStatus), With<Player>>,
     mut race_time: ResMut<RaceTime>,
     mut finished_event: EventWriter<FinishedEvent>,
+    mut trick_text: ResMut<TrickText>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
@@ -526,6 +527,7 @@ fn collision_events(
                     for (_, mut bonk) in player_query.iter_mut() {
                         // don't use **bonk, it will trigger change detection
                         if !bonk.0 {
+                            **trick_text = "BONK!".to_string();
                             **bonk = true;
                         }
                     }
@@ -583,8 +585,7 @@ fn track_trick(
         ),
         With<Player>,
     >,
-    mut trick_text_timer: ResMut<TrickTextTimer>,
-    mut trick_text: Query<&mut Text, With<TrickText>>,
+    mut trick_text: ResMut<TrickText>,
     audio: Res<Audio>,
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
@@ -641,12 +642,8 @@ fn track_trick(
                     BASE_BOOST_TIMER + (flips - 1) as f32 * 1.,
                 ));
 
-                for mut text in trick_text.iter_mut() {
-                    text.sections[0].value =
-                        ui::trick_text(trick_status.front_flips, trick_status.back_flips, fakie);
-                    text.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
-                }
-                trick_text_timer.reset();
+                **trick_text =
+                    ui::get_trick_text(trick_status.front_flips, trick_status.back_flips, fakie);
 
                 audio.play_with_settings(
                     game_audio.trick.clone(),

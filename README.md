@@ -13,7 +13,6 @@ For Bevy Jam 2
   - [ ] Swap in final music
   - [X] Trick success
   - [X] Bonk
-- [ ] Trick text should say "BONK!" when you bonk
 - [ ] Finish track
 - [ ] Fill in README
 - [ ] Itch

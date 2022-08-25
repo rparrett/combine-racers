@@ -6,12 +6,14 @@ use crate::{GameAssets, GameState, RaceTime};
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<TrickTextTimer>()
+        app.init_resource::<TrickText>()
+            .init_resource::<TrickTextTimer>()
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(setup))
             .add_system_set(
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
-                    .with_system(race_time),
+                    .with_system(race_time)
+                    .with_system(trick_text),
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
@@ -24,7 +26,7 @@ impl Plugin for UiPlugin {
 }
 
 #[derive(Component)]
-pub struct TrickText;
+pub struct TrickTextMarker;
 #[derive(Deref, DerefMut)]
 pub struct TrickTextTimer(Timer);
 impl Default for TrickTextTimer {
@@ -34,6 +36,9 @@ impl Default for TrickTextTimer {
 }
 #[derive(Component)]
 pub struct RaceTimeText;
+
+#[derive(Default, Deref, DerefMut)]
+pub struct TrickText(String);
 
 fn setup(mut commands: Commands, assets: Res<GameAssets>) {
     commands
@@ -95,13 +100,13 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             .with_alignment(TextAlignment::CENTER),
             ..Default::default()
         })
-        .insert(TrickText);
+        .insert(TrickTextMarker);
 }
 
 fn fade_trick_text(
     time: Res<Time>,
     mut timer: ResMut<TrickTextTimer>,
-    mut query: Query<&mut Text, With<TrickText>>,
+    mut query: Query<&mut Text, With<TrickTextMarker>>,
 ) {
     timer.tick(time.delta());
     if !timer.finished() {
@@ -116,7 +121,7 @@ fn fade_trick_text(
     }
 }
 
-pub fn trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String {
+pub fn get_trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String {
     fn num_text(num: u32) -> Option<&'static str> {
         match num {
             0 | 1 => None,
@@ -173,9 +178,26 @@ fn race_time(time: Res<RaceTime>, mut query: Query<&mut Text, With<RaceTimeText>
     }
 }
 
+fn trick_text(
+    mut timer: ResMut<TrickTextTimer>,
+    mut text_node: Query<&mut Text, With<TrickTextMarker>>,
+    text: Res<TrickText>,
+) {
+    if !text.is_changed() {
+        return;
+    }
+
+    for mut node in text_node.iter_mut() {
+        node.sections[0].value.clone_from(&**text);
+        node.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
+    }
+
+    timer.reset();
+}
+
 fn cleanup(
     mut commands: Commands,
-    query: Query<Entity, Or<(With<RaceTimeText>, With<TrickText>)>>,
+    query: Query<Entity, Or<(With<RaceTimeText>, With<TrickTextMarker>)>>,
 ) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
