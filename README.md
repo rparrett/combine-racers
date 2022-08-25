@@ -4,7 +4,6 @@ For Bevy Jam 2
 
 ## TODO
 
-- [ ] Webgl flicker fix (if no skybox or parallax)
 - [ ] Art
   - [X] Vehicle
   - [ ] Finish line
