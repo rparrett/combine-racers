@@ -4,26 +4,26 @@ For Bevy Jam 2
 
 ## TODO
 
-- [ ] webgl flicker fix (if no skybox or parallax)
-- [ ] art
+- [ ] Webgl flicker fix (if no skybox or parallax)
+- [ ] Art
   - [X] Vehicle
   - [ ] Finish line
-  - [ ] input bindings graphic
-  - [ ] track texture?
-- [ ] audio
+  - [ ] Input bindings graphic
+  - [ ] Track texture?
+- [ ] Audio
   - [X] 3 2 1 go
   - [ ] Music
   - [X] Trick success
-  - [ ] Bonk
-- [ ] "fakie" modifier for tricks
-- [ ] trick text should say "BONK!" when you bonk
-- [ ] (stretch goal) sticky patches on track
-- [ ] (stretch goal) barrel roll trick
-- [ ] should jump have a cooldown timer?
-- [ ] downforce?
-- [ ] navigate ui with gamepad
-- [ ] handle leaderboard failure(s)
-- [ ] use our own method of generating leaderboard names to distinguish us somewhat
-- [ ] (pre-release) start fresh leaderboard
-- [ ] add lava below map?
-- [ ] if leaderboard credentials aren't provided, use gameover screen instead.
+  - [X] Bonk
+- [ ] "Fakie" modifier for tricks
+- [ ] Trick text should say "BONK!" when you bonk
+- [ ] Finish track
+- [ ] (Stretch goal) Sticky patches on track
+- [ ] (Stretch goal) Barrel roll trick
+- [ ] Should jump have a cooldown timer? Is it exploitable?
+- [ ] Navigate ui with gamepad
+- [ ] Handle leaderboard failure(s)
+- [ ] Use our own method of generating leaderboard names to distinguish us somewhat
+- [ ] (Pre-release) Start fresh leaderboard
+- [ ] Add lava below map?
+- [ ] If leaderboard credentials aren't provided, use gameover screen instead.
