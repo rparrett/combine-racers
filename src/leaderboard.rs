@@ -8,13 +8,9 @@ use crate::{settings::LeaderboardSetting, GameAssets, GameState, RaceTime};
 pub struct LeaderboardPlugin;
 impl Plugin for LeaderboardPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ScoreSaved>();
-
-        if let (Some(id), Some(key)) = (
-            option_env!("JORNET_LEADERBOARD_ID"),
-            option_env!("JORNET_LEADERBOARD_KEY"),
-        ) {
-            app.init_resource::<Refreshing>()
+        if let Some((id, key)) = get_leaderboard_credentials() {
+            app.init_resource::<ScoreSaved>()
+                .init_resource::<Refreshing>()
                 .init_resource::<RefreshTimer>()
                 .add_plugin(JornetPlugin::with_leaderboard(id, key))
                 .add_system(save_leaderboard_setting)
@@ -68,6 +64,17 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
+
+pub fn get_leaderboard_credentials() -> Option<(&'static str, &'static str)> {
+    if let (Some(id), Some(key)) = (
+        option_env!("JORNET_LEADERBOARD_ID"),
+        option_env!("JORNET_LEADERBOARD_KEY"),
+    ) {
+        Some((id, key))
+    } else {
+        None
+    }
+}
 
 fn save_leaderboard_setting(
     mut leaderboard_setting: ResMut<LeaderboardSetting>,

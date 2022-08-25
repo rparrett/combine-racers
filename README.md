@@ -17,7 +17,6 @@ For Bevy Jam 2
 - [ ] Trick text should say "BONK!" when you bonk
 - [ ] Finish track
 - [ ] Navigate ui with gamepad
-- [ ] If leaderboard credentials aren't provided, use gameover screen instead.
 - [ ] Fill in README
 - [ ] Itch
 - [ ] (Stretch goal) Sticky patches on track

@@ -20,7 +20,7 @@ use bevy_rapier3d::prelude::*;
 use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
-use leaderboard::LeaderboardPlugin;
+use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use save::SavePlugin;
@@ -547,7 +547,11 @@ fn collision_events(
 
 fn game_finished(mut events: EventReader<FinishedEvent>, mut state: ResMut<State<GameState>>) {
     if events.iter().count() > 0 {
-        state.set(GameState::Leaderboard).unwrap();
+        if get_leaderboard_credentials().is_some() {
+            state.set(GameState::Leaderboard).unwrap();
+        } else {
+            state.set(GameState::GameOver).unwrap();
+        }
     }
 }
 
