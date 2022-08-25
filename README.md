@@ -15,7 +15,6 @@ For Bevy Jam 2
   - [ ] Music
   - [X] Trick success
   - [X] Bonk
-- [ ] "Fakie" modifier for tricks
 - [ ] Trick text should say "BONK!" when you bonk
 - [ ] Finish track
 - [ ] (Stretch goal) Sticky patches on track

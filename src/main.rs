@@ -85,10 +85,11 @@ struct LightContainer;
 struct SpeedLimit(f32);
 
 #[derive(Component, Default)]
-struct Rotation {
-    total: f32,
+struct TrickStatus {
+    rotation: f32,
     front_flips: u32,
     back_flips: u32,
+    start_x: f32,
 }
 
 #[derive(Component)]
@@ -390,7 +391,7 @@ fn spawn_player(
         .insert(ActiveEvents::COLLISION_EVENTS)
         .insert(SpeedLimit(BASE_SPEED_LIMIT))
         .insert(Boost::default())
-        .insert(Rotation::default())
+        .insert(TrickStatus::default())
         .insert(Player)
         .with_children(|parent| {
             parent
@@ -559,8 +560,9 @@ fn track_trick(
     time: Res<Time>,
     mut query: Query<
         (
-            &mut Rotation,
+            &mut TrickStatus,
             &Velocity,
+            &Transform,
             &WheelsOnGround,
             &BonkStatus,
             ChangeTrackers<WheelsOnGround>,
@@ -574,33 +576,39 @@ fn track_trick(
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
-    for (mut rotation, velocity, wheels, bonk, wheels_changed, mut boost) in query.iter_mut() {
+    for (mut rotation, velocity, transform, wheels, bonk, wheels_changed, mut boost) in
+        query.iter_mut()
+    {
         if **bonk {
-            rotation.total = 0.;
+            rotation.rotation = 0.;
             rotation.front_flips = 0;
             rotation.back_flips = 0;
         }
 
         if **wheels == 0 {
+            if wheels_changed.is_changed() {
+                rotation.start_x = transform.translation.x;
+            }
+
             let elapsed = time.delta_seconds();
             let rot = velocity.angvel * elapsed;
 
-            rotation.total += rot.z;
+            rotation.rotation += rot.z;
 
             // TODO back/front reversed when travelling left
 
-            if rotation.total > std::f32::consts::TAU {
+            if rotation.rotation > std::f32::consts::TAU {
                 rotation.back_flips += 1;
-                rotation.total -= std::f32::consts::TAU;
-            } else if rotation.total < -std::f32::consts::TAU {
+                rotation.rotation -= std::f32::consts::TAU;
+            } else if rotation.rotation < -std::f32::consts::TAU {
                 rotation.front_flips += 1;
-                rotation.total += std::f32::consts::TAU;
+                rotation.rotation += std::f32::consts::TAU;
             }
         } else if wheels_changed.is_changed() {
             // super generous, because player may have launched from angled ramp
-            if rotation.total > 280.0_f32.to_radians() {
+            if rotation.rotation > 280.0_f32.to_radians() {
                 rotation.back_flips += 1;
-            } else if rotation.total < -280.0_f32.to_radians() {
+            } else if rotation.rotation < -280.0_f32.to_radians() {
                 rotation.front_flips += 1;
             }
             if rotation.front_flips > 0 || rotation.back_flips > 0 {
@@ -608,10 +616,12 @@ fn track_trick(
                     "FLIP! fwd{} rev{} (leftover: {})",
                     rotation.front_flips,
                     rotation.back_flips,
-                    rotation.total.to_degrees()
+                    rotation.rotation.to_degrees()
                 );
 
                 let flips = rotation.front_flips + rotation.back_flips;
+
+                let fakie = transform.translation.x < rotation.start_x;
 
                 boost.timer.reset();
                 boost.timer.set_duration(Duration::from_secs_f32(
@@ -620,7 +630,7 @@ fn track_trick(
 
                 for mut text in trick_text.iter_mut() {
                     text.sections[0].value =
-                        ui::trick_text(rotation.front_flips, rotation.back_flips);
+                        ui::trick_text(rotation.front_flips, rotation.back_flips, fakie);
                     text.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
                 }
                 trick_text_timer.reset();
@@ -631,7 +641,7 @@ fn track_trick(
                 );
             }
 
-            rotation.total = 0.;
+            rotation.rotation = 0.;
             rotation.front_flips = 0;
             rotation.back_flips = 0;
         }

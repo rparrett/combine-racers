@@ -116,26 +116,48 @@ fn fade_trick_text(
     }
 }
 
-pub fn trick_text(front_flips: u32, back_flips: u32) -> String {
+pub fn trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String {
+    fn num_text(num: u32) -> Option<&'static str> {
+        match num {
+            0 | 1 => None,
+            2 => Some("Double"),
+            3 => Some("Triple"),
+            4 => Some("Quad"),
+            _ => Some("Mega"),
+        }
+    }
+
     let mut lines = vec![];
 
     if front_flips > 0 {
-        lines.push(match front_flips {
-            0 => "",
-            1 => "Front Flip!",
-            2 => "Double Front Flip!",
-            3 => "Triple Front Flip!",
-            _ => "Mega Front Flip!",
-        });
+        let mut parts = vec![];
+
+        if fakie {
+            parts.push("Fakie");
+        }
+
+        if let Some(num) = num_text(front_flips) {
+            parts.push(num);
+        }
+
+        parts.push("Front Flip!");
+
+        lines.push(parts.join(" "));
     }
     if back_flips > 0 {
-        lines.push(match back_flips {
-            0 => "",
-            1 => "Back Flip!",
-            2 => "Double Back Flip!",
-            3 => "Triple Back Flip!",
-            _ => "Mega Back Flip!",
-        });
+        let mut parts = vec![];
+
+        if fakie {
+            parts.push("Fakie");
+        }
+
+        if let Some(num) = num_text(back_flips) {
+            parts.push(num);
+        }
+
+        parts.push("Back Flip!");
+
+        lines.push(parts.join(" "));
     }
 
     lines.join("\n")
