@@ -1,7 +1,9 @@
 use bevy::prelude::*;
-use bevy_jornet::{JornetPlugin, Leaderboard, LeaderboardEvent};
+use bevy_jornet::{
+    CreatePlayerEvent, JornetPlugin, Leaderboard, RefreshLeaderboardEvent, SendScoreEvent,
+};
 
-use crate::{GameAssets, GameState, RaceTime};
+use crate::{settings::LeaderboardSetting, GameAssets, GameState, RaceTime};
 
 pub struct LeaderboardPlugin;
 impl Plugin for LeaderboardPlugin {
@@ -15,6 +17,7 @@ impl Plugin for LeaderboardPlugin {
             app.init_resource::<Refreshing>()
                 .init_resource::<RefreshTimer>()
                 .add_plugin(JornetPlugin::with_leaderboard(id, key))
+                .add_system(save_leaderboard_setting)
                 .add_system_set(SystemSet::on_enter(GameState::Loading).with_system(create_player))
                 .add_system_set(
                     SystemSet::on_enter(GameState::Leaderboard)
@@ -66,11 +69,25 @@ const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
 
-fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<LeaderboardEvent>) {
+fn save_leaderboard_setting(
+    mut leaderboard_setting: ResMut<LeaderboardSetting>,
+    mut events: EventReader<CreatePlayerEvent>,
+    leaderboard: Res<Leaderboard>,
+) {
     if !events
         .iter()
-        .any(|e| matches!(*e, LeaderboardEvent::SendScoreSucceeded))
+        .any(|e| matches!(*e, CreatePlayerEvent::Success))
     {
+        return;
+    }
+
+    if let Some(player) = leaderboard.get_player() {
+        leaderboard_setting.0 = Some(player.clone());
+    }
+}
+
+fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<SendScoreEvent>) {
+    if !events.iter().any(|e| matches!(*e, SendScoreEvent::Success)) {
         return;
     }
 
@@ -86,11 +103,11 @@ fn update_leaderboard(
     container_query: Query<Entity, With<ScoresContainer>>,
     loading_text_query: Query<Entity, With<LoadingText>>,
     assets: Res<GameAssets>,
-    mut events: EventReader<LeaderboardEvent>,
+    mut events: EventReader<RefreshLeaderboardEvent>,
 ) {
     if !events
         .iter()
-        .any(|e| matches!(*e, LeaderboardEvent::RefreshLeaderboardSucceeded))
+        .any(|e| matches!(*e, RefreshLeaderboardEvent::Success))
     {
         return;
     }
@@ -337,11 +354,22 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         .push_children(&[title, loading, scores_container, play_again]);
 }
 
-fn create_player(mut leaderboard: ResMut<Leaderboard>) {
-    leaderboard.create_player(None);
+fn create_player(
+    mut leaderboard: ResMut<Leaderboard>,
+    leaderboard_setting: Res<LeaderboardSetting>,
+) {
+    if let Some(player) = &**leaderboard_setting {
+        info!("as_playering with {:?}", player);
+
+        leaderboard.as_player(player.clone());
+    } else {
+        info!("creating new player");
+        leaderboard.create_player(None);
+    }
 }
 
 fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
+    info!("sending score. player is: {:?}", leaderboard.get_player());
     leaderboard.send_score(-race_time.elapsed_secs());
 }
 

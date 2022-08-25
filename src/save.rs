@@ -1,7 +1,4 @@
-use crate::{
-    settings::{KeyboardSetting, MusicSetting, SfxSetting},
-    GameState,
-};
+use crate::settings::{KeyboardSetting, LeaderboardSetting, MusicSetting, SfxSetting};
 
 use bevy::prelude::*;
 use ron::ser::PrettyConfig;
@@ -13,7 +10,7 @@ pub struct SavePlugin;
 impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
         app.add_system(save_system);
-        app.add_system_set(SystemSet::on_enter(GameState::Loading).with_system(load_system));
+        app.add_startup_system(load_system);
     }
 }
 
@@ -22,6 +19,7 @@ struct SaveFile {
     sfx: SfxSetting,
     music: MusicSetting,
     keyboard: KeyboardSetting,
+    leaderboard: LeaderboardSetting,
 }
 
 pub fn load_system(mut commands: Commands) {
@@ -45,6 +43,7 @@ pub fn load_system(mut commands: Commands) {
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
         commands.insert_resource(save_file.keyboard);
+        commands.insert_resource(save_file.leaderboard);
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -74,15 +73,22 @@ pub fn load_system(mut commands: Commands) {
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
         commands.insert_resource(save_file.keyboard);
+        commands.insert_resource(save_file.name);
     }
 }
 
-pub fn save_system(sfx: Res<SfxSetting>, music: Res<MusicSetting>, keyboard: Res<KeyboardSetting>) {
+pub fn save_system(
+    sfx: Res<SfxSetting>,
+    music: Res<MusicSetting>,
+    keyboard: Res<KeyboardSetting>,
+    leaderboard: Res<LeaderboardSetting>,
+) {
     let sfx_changed = sfx.is_changed() && !sfx.is_added();
     let music_changed = music.is_changed() && !music.is_added();
     let keyboard_changed = keyboard.is_changed() && !keyboard.is_added();
+    let name_changed = leaderboard.is_changed() && !leaderboard.is_added();
 
-    if !sfx_changed && !music_changed && !keyboard_changed {
+    if !sfx_changed && !music_changed && !keyboard_changed && !name_changed {
         return;
     }
 
@@ -92,6 +98,7 @@ pub fn save_system(sfx: Res<SfxSetting>, music: Res<MusicSetting>, keyboard: Res
         sfx: sfx.clone(),
         music: music.clone(),
         keyboard: keyboard.clone(),
+        leaderboard: leaderboard.clone(),
     };
 
     let pretty = PrettyConfig::new();

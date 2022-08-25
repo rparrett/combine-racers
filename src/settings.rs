@@ -6,7 +6,8 @@ impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<KeyboardSetting>()
             .init_resource::<MusicSetting>()
-            .init_resource::<SfxSetting>();
+            .init_resource::<SfxSetting>()
+            .init_resource::<LeaderboardSetting>();
     }
 }
 
@@ -46,3 +47,6 @@ impl Default for SfxSetting {
         Self(100)
     }
 }
+
+#[derive(Default, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+pub struct LeaderboardSetting(pub Option<bevy_jornet::Player>);

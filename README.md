@@ -24,9 +24,6 @@ For Bevy Jam 2
 - [ ] navigate ui with gamepad
 - [ ] handle leaderboard failure(s)
 - [ ] use our own method of generating leaderboard names to distinguish us somewhat
-- [ ] local storage of
-  - [X] music and keyboard settings
-  - [ ] leaderboard player (id? name?)
 - [ ] (pre-release) start fresh leaderboard
 - [ ] add lava below map?
 - [ ] if leaderboard credentials aren't provided, use gameover screen instead.
