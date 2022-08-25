@@ -12,17 +12,17 @@ For Bevy Jam 2
   - [ ] Track texture?
 - [ ] Audio
   - [X] 3 2 1 go
-  - [ ] Music
+  - [ ] Swap in final music
   - [X] Trick success
   - [X] Bonk
 - [ ] Trick text should say "BONK!" when you bonk
 - [ ] Finish track
+- [ ] Navigate ui with gamepad
+- [ ] If leaderboard credentials aren't provided, use gameover screen instead.
+- [ ] Fill in README
+- [ ] Itch
 - [ ] (Stretch goal) Sticky patches on track
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
-- [ ] Should jump have a cooldown timer? Is it exploitable?
-- [ ] Navigate ui with gamepad
-- [ ] Handle leaderboard failure(s)
-- [ ] Use our own method of generating leaderboard names to distinguish us somewhat
+- [ ] (Stretch goal) Use our own name generator for the leaderboard
 - [ ] (Pre-release) Start fresh leaderboard
-- [ ] If leaderboard credentials aren't provided, use gameover screen instead.
