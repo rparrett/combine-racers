@@ -1,16 +1,6 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-pub struct SettingsPlugin;
-impl Plugin for SettingsPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<KeyboardSetting>()
-            .init_resource::<MusicSetting>()
-            .init_resource::<SfxSetting>()
-            .init_resource::<LeaderboardSetting>();
-    }
-}
-
 #[derive(Default, Debug, Deref, DerefMut, Serialize, Deserialize, Clone)]
 pub struct KeyboardSetting(KeyboardLayout);
 #[derive(Debug, Serialize, Deserialize, Clone)]

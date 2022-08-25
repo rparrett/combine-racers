@@ -25,7 +25,7 @@ use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use save::SavePlugin;
 use serde::Deserialize;
-use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SettingsPlugin, SfxSetting};
+use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting};
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -164,7 +164,6 @@ fn main() {
     .add_plugin(CountdownPlugin)
     .add_plugin(LeaderboardPlugin)
     .add_plugin(GameOverPlugin)
-    .add_plugin(SettingsPlugin)
     .add_plugin(SavePlugin);
 
     #[cfg(feature = "inspector")]

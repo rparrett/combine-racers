@@ -2,7 +2,7 @@ use bevy::{audio::AudioSink, prelude::*};
 
 use crate::{
     settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
-    GameAssets, GameState, MusicController,
+    AudioAssets, GameAssets, GameState, MusicController,
 };
 
 pub struct MainMenuPlugin;
@@ -16,6 +16,7 @@ impl Plugin for MainMenuPlugin {
                     .with_system(keyboard_setting_button)
                     .with_system(music_setting_button)
                     .with_system(sfx_setting_button)
+                    .with_system(sfx_volume)
                     .with_system(music_volume),
             )
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(cleanup_menu));
@@ -302,18 +303,30 @@ fn sfx_setting_button(
     }
 }
 
+fn sfx_volume(sfx_setting: Res<SfxSetting>, audio: Res<Audio>, game_audio: Res<AudioAssets>) {
+    // Do not run when SfxSetting is first added by SavePlugin
+    if !sfx_setting.is_changed() || sfx_setting.is_added() {
+        return;
+    }
+
+    audio.play_with_settings(
+        game_audio.trick.clone(),
+        PlaybackSettings::ONCE.with_volume(**sfx_setting as f32 / 100.),
+    );
+}
+
 fn music_volume(
     music_setting: Res<MusicSetting>,
     audio_sinks: Res<Assets<AudioSink>>,
     controller: Option<Res<MusicController>>,
 ) {
-    if !music_setting.is_changed() {
+    // Do not run when MusicSetting is first added by SavePlugin
+    if !music_setting.is_changed() || music_setting.is_added() {
         return;
     }
 
     if let Some(controller) = controller {
         if let Some(sink) = audio_sinks.get(&controller.0) {
-            info!("setting volume");
             sink.set_volume(**music_setting as f32 / 100.)
         }
     }
