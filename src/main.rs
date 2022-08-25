@@ -564,8 +564,8 @@ fn track_trick(
             &Velocity,
             &Transform,
             &WheelsOnGround,
-            &BonkStatus,
             ChangeTrackers<WheelsOnGround>,
+            &BonkStatus,
             &mut Boost,
         ),
         With<Player>,
@@ -576,52 +576,52 @@ fn track_trick(
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
-    for (mut rotation, velocity, transform, wheels, bonk, wheels_changed, mut boost) in
+    for (mut trick_status, velocity, transform, wheels, wheels_changed, bonk, mut boost) in
         query.iter_mut()
     {
         if **bonk {
-            rotation.rotation = 0.;
-            rotation.front_flips = 0;
-            rotation.back_flips = 0;
+            trick_status.rotation = 0.;
+            trick_status.front_flips = 0;
+            trick_status.back_flips = 0;
         }
 
         if **wheels == 0 {
             if wheels_changed.is_changed() {
-                rotation.start_x = transform.translation.x;
+                trick_status.start_x = transform.translation.x;
             }
 
             let elapsed = time.delta_seconds();
             let rot = velocity.angvel * elapsed;
 
-            rotation.rotation += rot.z;
+            trick_status.rotation += rot.z;
 
             // TODO back/front reversed when travelling left
 
-            if rotation.rotation > std::f32::consts::TAU {
-                rotation.back_flips += 1;
-                rotation.rotation -= std::f32::consts::TAU;
-            } else if rotation.rotation < -std::f32::consts::TAU {
-                rotation.front_flips += 1;
-                rotation.rotation += std::f32::consts::TAU;
+            if trick_status.rotation > std::f32::consts::TAU {
+                trick_status.back_flips += 1;
+                trick_status.rotation -= std::f32::consts::TAU;
+            } else if trick_status.rotation < -std::f32::consts::TAU {
+                trick_status.front_flips += 1;
+                trick_status.rotation += std::f32::consts::TAU;
             }
         } else if wheels_changed.is_changed() {
             // super generous, because player may have launched from angled ramp
-            if rotation.rotation > 280.0_f32.to_radians() {
-                rotation.back_flips += 1;
-            } else if rotation.rotation < -280.0_f32.to_radians() {
-                rotation.front_flips += 1;
+            if trick_status.rotation > 280.0_f32.to_radians() {
+                trick_status.back_flips += 1;
+            } else if trick_status.rotation < -280.0_f32.to_radians() {
+                trick_status.front_flips += 1;
             }
-            if rotation.front_flips > 0 || rotation.back_flips > 0 {
+            if trick_status.front_flips > 0 || trick_status.back_flips > 0 {
                 info!(
                     "FLIP! fwd{} rev{} (leftover: {})",
-                    rotation.front_flips,
-                    rotation.back_flips,
-                    rotation.rotation.to_degrees()
+                    trick_status.front_flips,
+                    trick_status.back_flips,
+                    trick_status.rotation.to_degrees()
                 );
 
-                let flips = rotation.front_flips + rotation.back_flips;
+                let flips = trick_status.front_flips + trick_status.back_flips;
 
-                let fakie = transform.translation.x < rotation.start_x;
+                let fakie = transform.translation.x < trick_status.start_x;
 
                 boost.timer.reset();
                 boost.timer.set_duration(Duration::from_secs_f32(
@@ -630,7 +630,7 @@ fn track_trick(
 
                 for mut text in trick_text.iter_mut() {
                     text.sections[0].value =
-                        ui::trick_text(rotation.front_flips, rotation.back_flips, fakie);
+                        ui::trick_text(trick_status.front_flips, trick_status.back_flips, fakie);
                     text.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
                 }
                 trick_text_timer.reset();
@@ -641,9 +641,9 @@ fn track_trick(
                 );
             }
 
-            rotation.rotation = 0.;
-            rotation.front_flips = 0;
-            rotation.back_flips = 0;
+            trick_status.rotation = 0.;
+            trick_status.front_flips = 0;
+            trick_status.back_flips = 0;
         }
     }
 }
