@@ -10,7 +10,8 @@ mod settings;
 mod ui;
 
 use bevy::{
-    gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
+    audio::AudioSink, gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*,
+    time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -24,7 +25,7 @@ use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use save::SavePlugin;
 use serde::Deserialize;
-use settings::{KeyboardLayout, KeyboardSetting, SettingsPlugin, SfxSetting};
+use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SettingsPlugin, SfxSetting};
 use std::time::Duration;
 use ui::{TrickText, TrickTextTimer, UiPlugin};
 
@@ -65,6 +66,8 @@ struct GameAssets {
 }
 #[derive(AssetCollection)]
 struct AudioAssets {
+    #[asset(path = "7th-race-draft-aiteru-sawato.ogg")]
+    music: Handle<AudioSource>,
     #[asset(path = "combine-racers-321go.ogg")]
     three_two_one: Handle<AudioSource>,
     #[asset(path = "combine-racers-trick.ogg")]
@@ -72,6 +75,8 @@ struct AudioAssets {
     #[asset(path = "combine-racers-bonk.ogg")]
     bonk: Handle<AudioSource>,
 }
+
+struct MusicController(Handle<AudioSink>);
 
 #[derive(Component)]
 struct LightContainer;
@@ -169,7 +174,11 @@ fn main() {
         .init_resource::<Zoom>()
         .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
-        .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
+        .add_system_set(
+            SystemSet::on_enter(GameState::Decorating)
+                .with_system(setup_game)
+                .with_system(music),
+        )
         .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
         .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
         .add_system_set_to_stage(
@@ -689,8 +698,6 @@ fn bonk_sound(
     bonk_query: Query<&BonkStatus, (Changed<BonkStatus>, With<Player>)>,
 ) {
     for bonk in &bonk_query {
-        info!("bonk_sound: {:?}", bonk);
-
         if **bonk {
             audio.play_with_settings(
                 game_audio.bonk.clone(),
@@ -698,6 +705,20 @@ fn bonk_sound(
             );
         }
     }
+}
+
+fn music(
+    mut commands: Commands,
+    audio_assets: Res<AudioAssets>,
+    audio_sinks: Res<Assets<AudioSink>>,
+    audio: Res<Audio>,
+    music_setting: Res<MusicSetting>,
+) {
+    let handle = audio_sinks.get_handle(audio.play_with_settings(
+        audio_assets.music.clone(),
+        PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
+    ));
+    commands.insert_resource(MusicController(handle));
 }
 
 fn reset_action(
