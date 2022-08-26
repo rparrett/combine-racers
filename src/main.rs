@@ -193,12 +193,9 @@ fn main() {
         .init_resource::<Zoom>()
         .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
-        .add_system_set(
-            SystemSet::on_enter(GameState::Decorating)
-                .with_system(setup_game)
-                .with_system(music),
-        )
+        .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
         .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
+        .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(music))
         .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
