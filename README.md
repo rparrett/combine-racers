@@ -26,6 +26,7 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
   - [X] Trick success
   - [X] Bonk
 - [ ] Itch
+- [ ] (Pre-release) Start fresh leaderboard
 - [ ] (Stretch goal) Navigate UI with gamepad
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Speedometer
@@ -34,4 +35,3 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
 - [ ] (Stretch goal) Use our own name generator for the leaderboard
-- [ ] (Pre-release) Start fresh leaderboard
