@@ -4,6 +4,8 @@ For Bevy Jam #2.
 
 [Play on itch.io](https://euclidean-whale.itch.io/combine-racers)
 
+Do tricks to go fast in your Combine Harvester! Go fast longer by doing a different trick than the last one.
+
 ## Acknowledgements
 
 Music is an original composition by [Aiteru Sawato](https://www.youtube.com/channel/UCXkaOsXAVvxY2HFFRt7PjPQ) produced for this project and redistributed here with their permission.
