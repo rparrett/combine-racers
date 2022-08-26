@@ -109,6 +109,8 @@ impl Default for Boost {
 struct Track;
 #[derive(Component)]
 struct FinishLine;
+#[derive(Component)]
+struct PlaceholderCombine;
 #[derive(Deref, DerefMut)]
 struct RaceTime(Stopwatch);
 impl Default for RaceTime {
@@ -333,6 +335,19 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
             ..default()
         }
     });
+
+    // this is super dumb, but spawning the combine stops the world in web
+    // builds and ruins the race start countdown. so we'll spawn it here
+    // instead when it's less disruptive.
+    commands
+        .spawn_bundle({
+            SceneBundle {
+                scene: assets.combine.clone(),
+                transform: Transform::from_xyz(0., -4., 0.).with_scale(Vec3::splat(0.001)),
+                ..default()
+            }
+        })
+        .insert(PlaceholderCombine);
 }
 
 fn spawn_player(
