@@ -57,7 +57,7 @@ enum GameState {
 
 #[derive(AssetCollection)]
 struct GameAssets {
-    #[asset(path = "tracktest.glb#Scene0")]
+    #[asset(path = "track_1.glb#Scene0")]
     track: Handle<Scene>,
     #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,

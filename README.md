@@ -13,7 +13,6 @@ For Bevy Jam 2
   - [ ] Swap in final music
   - [X] Trick success
   - [X] Bonk
-- [ ] Finish track
 - [ ] Fill in README
 - [ ] Itch
 - [ ] (Stretch goal) Navigate UI with gamepad
