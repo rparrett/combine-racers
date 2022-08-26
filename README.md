@@ -1,6 +1,18 @@
 # Combine Racers
 
-For Bevy Jam 2
+For Bevy Jam #2.
+
+[Play on itch.io](https://euclidean-whale.itch.io/combine-racers)
+
+## Acknowledgements
+
+Music is an original composition by [Aiteru Sawato](https://www.youtube.com/channel/UCXkaOsXAVvxY2HFFRt7PjPQ) produced for this project and redistributed here with their permission.
+
+`NanumPenScript-Tweaked.ttf` is derived from [Nanum Pen Script](https://fonts.adobe.com/fonts/nanum-pen-script) and is licensed under the SIL Open Font License.
+
+All other assets are original creations by me for this project.
+
+The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mockersf](https://github.com/sponsors/mockersf).
 
 ## TODO
 
@@ -13,7 +25,6 @@ For Bevy Jam 2
   - [ ] Swap in final music
   - [X] Trick success
   - [X] Bonk
-- [ ] Fill in README
 - [ ] Itch
 - [ ] (Stretch goal) Navigate UI with gamepad
 - [ ] (Stretch goal) Boost gauge
