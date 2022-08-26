@@ -786,9 +786,14 @@ fn music(
     commands.insert_resource(MusicController(handle));
 }
 
-fn death(query: Query<&Transform, With<Player>>, mut state: ResMut<State<GameState>>) {
+fn death(
+    query: Query<&Transform, With<Player>>,
+    mut state: ResMut<State<GameState>>,
+    mut race_time: ResMut<RaceTime>,
+) {
     for transform in &query {
         if transform.translation.y < LAVA {
+            race_time.pause();
             state.set(GameState::GameOver).unwrap();
         }
     }
@@ -797,9 +802,11 @@ fn death(query: Query<&Transform, With<Player>>, mut state: ResMut<State<GameSta
 fn reset_action(
     query: Query<&ActionState<Action>, With<Player>>,
     mut state: ResMut<State<GameState>>,
+    mut race_time: ResMut<RaceTime>,
 ) {
     let action_state = query.single();
     if action_state.just_pressed(Action::Reset) {
+        race_time.pause();
         state.set(GameState::GameOver).unwrap();
     }
 }
