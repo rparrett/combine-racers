@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(target_arch = "wasm32"))]
 const SAVE_FILE: &str = "save.ron";
 #[cfg(target_arch = "wasm32")]
 const LOCAL_STORAGE_KEY: &str = "combine-racers-save";
