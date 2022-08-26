@@ -712,6 +712,7 @@ fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<P
 
         boost.remaining -= time.delta_seconds();
         if boost.remaining <= 0. {
+            boost.remaining = 0.;
             **speed_limit = BASE_SPEED_LIMIT;
             info!("speed limit now {}", **speed_limit);
         }
