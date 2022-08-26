@@ -343,6 +343,7 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
         .spawn_bundle({
             SceneBundle {
                 scene: assets.combine.clone(),
+                // the thing has to be "visible" for this to work, so hide it in the track.
                 transform: Transform::from_xyz(0., -4., 0.).with_scale(Vec3::splat(0.001)),
                 ..default()
             }
