@@ -150,6 +150,10 @@ fn main() {
         filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
         level: bevy::log::Level::DEBUG,
     })
+    .insert_resource(WindowDescriptor {
+        fit_canvas_to_parent: true,
+        ..default()
+    })
     .insert_resource(PointLightShadowMap { size: 2048 })
     .insert_resource(ClearColor(Color::BLACK))
     .add_state(GameState::Loading)
