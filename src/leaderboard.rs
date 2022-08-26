@@ -2,8 +2,13 @@ use bevy::prelude::*;
 use bevy_jornet::{
     CreatePlayerEvent, JornetPlugin, Leaderboard, RefreshLeaderboardEvent, SendScoreEvent,
 };
+use bevy_ui_navigation::prelude::*;
 
-use crate::{settings::LeaderboardSetting, GameAssets, GameState, RaceTime};
+use crate::{
+    settings::LeaderboardSetting,
+    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, TITLE_TEXT},
+    GameAssets, GameState, RaceTime,
+};
 
 pub struct LeaderboardPlugin;
 impl Plugin for LeaderboardPlugin {
@@ -24,8 +29,8 @@ impl Plugin for LeaderboardPlugin {
                     SystemSet::on_update(GameState::Leaderboard)
                         .with_system(initiate_refresh)
                         .with_system(update_leaderboard)
-                        .with_system(buttons)
-                        .with_system(play_again_button),
+                        .with_system(button_actions)
+                        .with_system(buttons.after(NavRequestSystem)),
                 )
                 .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup));
         }
@@ -59,11 +64,10 @@ struct ScoresContainer;
 
 #[derive(Component)]
 struct PlayAgainButton;
-
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
+#[derive(Component)]
+enum LeaderboardButton {
+    PlayAgain,
+}
 
 pub fn get_leaderboard_credentials() -> Option<(&'static str, &'static str)> {
     if let (Some(id), Some(key)) = (
@@ -240,7 +244,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
     let title_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 60.0,
-        color: TEXT_COLOR,
+        color: TITLE_TEXT,
     };
     let button_style = Style {
         size: Size::new(Val::Px(250.0), Val::Px(45.0)),
@@ -252,7 +256,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
     let button_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 30.0,
-        color: TEXT_COLOR,
+        color: BUTTON_TEXT,
     };
 
     let root = commands
@@ -309,7 +313,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
                 TextStyle {
                     font: assets.font.clone(),
                     font_size: 30.0,
-                    color: TEXT_COLOR,
+                    color: TITLE_TEXT,
                 },
             )
             .with_style(Style {
@@ -351,6 +355,8 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
                 button_text_style.clone(),
             ));
         })
+        .insert(Focusable::default())
+        .insert(LeaderboardButton::PlayAgain)
         .insert(PlayAgainButton)
         .id();
 
@@ -380,37 +386,20 @@ fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
     leaderboard.send_score(-race_time.elapsed_secs());
 }
 
-fn buttons(
-    mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color) in &mut interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
-fn play_again_button(
+fn button_actions(
+    buttons: Query<&LeaderboardButton>,
+    mut events: EventReader<NavEvent>,
     mut state: ResMut<State<GameState>>,
-    interaction_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<Button>, With<PlayAgainButton>),
-    >,
 ) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            state.set(GameState::MainMenu).unwrap();
+    // Note: we have a closure here because the `buttons` query is mutable.
+    // for immutable queries, you can use `.activated_in_query` which returns an iterator.
+    // Do something when player activates (click, press "A" etc.) a `Focusable` button.
+
+    for button in events.nav_iter().activated_in_query(&buttons) {
+        match button {
+            LeaderboardButton::PlayAgain => {
+                state.set(GameState::MainMenu).unwrap();
+            }
         }
     }
 }

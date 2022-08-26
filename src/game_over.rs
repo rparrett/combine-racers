@@ -1,6 +1,10 @@
 use bevy::prelude::*;
+use bevy_ui_navigation::prelude::*;
 
-use crate::{GameAssets, GameState};
+use crate::{
+    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, TITLE_TEXT},
+    GameAssets, GameState,
+};
 
 pub struct GameOverPlugin;
 impl Plugin for GameOverPlugin {
@@ -8,8 +12,8 @@ impl Plugin for GameOverPlugin {
         app.add_system_set(SystemSet::on_enter(GameState::GameOver).with_system(spawn))
             .add_system_set(
                 SystemSet::on_update(GameState::GameOver)
-                    .with_system(buttons)
-                    .with_system(play_again_button),
+                    .with_system(button_actions)
+                    .with_system(buttons.after(NavRequestSystem)),
             )
             .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(cleanup));
     }
@@ -20,17 +24,16 @@ struct GameOverMarker;
 
 #[derive(Component)]
 struct PlayAgainButton;
-
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
+#[derive(Component)]
+enum GameOverButton {
+    PlayAgain,
+}
 
 fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
     let title_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 60.0,
-        color: TEXT_COLOR,
+        color: TITLE_TEXT,
     };
     let button_style = Style {
         size: Size::new(Val::Px(250.0), Val::Px(45.0)),
@@ -42,7 +45,7 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
     let button_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 30.0,
-        color: TEXT_COLOR,
+        color: BUTTON_TEXT,
     };
 
     let root = commands
@@ -104,6 +107,8 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
                 button_text_style.clone(),
             ));
         })
+        .insert(Focusable::default())
+        .insert(GameOverButton::PlayAgain)
         .insert(PlayAgainButton)
         .id();
 
@@ -114,37 +119,20 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
         .push_children(&[title, play_again]);
 }
 
-fn buttons(
-    mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color) in &mut interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
-fn play_again_button(
+fn button_actions(
+    buttons: Query<&GameOverButton>,
+    mut events: EventReader<NavEvent>,
     mut state: ResMut<State<GameState>>,
-    interaction_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<Button>, With<PlayAgainButton>),
-    >,
 ) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            state.set(GameState::MainMenu).unwrap();
+    // Note: we have a closure here because the `buttons` query is mutable.
+    // for immutable queries, you can use `.activated_in_query` which returns an iterator.
+    // Do something when player activates (click, press "A" etc.) a `Focusable` button.
+
+    for button in events.nav_iter().activated_in_query(&buttons) {
+        match button {
+            GameOverButton::PlayAgain => {
+                state.set(GameState::MainMenu).unwrap();
+            }
         }
     }
 }

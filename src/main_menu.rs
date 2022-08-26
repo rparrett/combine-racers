@@ -1,7 +1,9 @@
 use bevy::{audio::AudioSink, prelude::*};
+use bevy_ui_navigation::prelude::*;
 
 use crate::{
     settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
+    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON},
     AudioAssets, GameAssets, GameState, MusicController,
 };
 
@@ -11,13 +13,10 @@ impl Plugin for MainMenuPlugin {
         app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
             .add_system_set(
                 SystemSet::on_update(GameState::MainMenu)
-                    .with_system(buttons)
-                    .with_system(play_button)
-                    .with_system(keyboard_setting_button)
-                    .with_system(music_setting_button)
-                    .with_system(sfx_setting_button)
                     .with_system(sfx_volume)
-                    .with_system(music_volume),
+                    .with_system(music_volume)
+                    .with_system(button_actions)
+                    .with_system(buttons.after(NavRequestSystem)),
             )
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(cleanup_menu));
     }
@@ -43,11 +42,6 @@ struct SfxSettingButton;
 #[derive(Component)]
 struct SfxSettingButtonText;
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
-
 fn setup_menu(
     mut commands: Commands,
     assets: Res<GameAssets>,
@@ -67,17 +61,17 @@ fn setup_menu(
     let button_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 30.0,
-        color: TEXT_COLOR,
+        color: BUTTON_TEXT,
     };
     let title_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 60.0,
-        color: TEXT_COLOR,
+        color: BUTTON_TEXT,
     };
     let subtitle_text_style = TextStyle {
         font: assets.font.clone(),
         font_size: 40.0,
-        color: TEXT_COLOR,
+        color: BUTTON_TEXT,
     };
 
     let container = commands
@@ -113,9 +107,11 @@ fn setup_menu(
             color: NORMAL_BUTTON.into(),
             ..default()
         })
+        .insert(Focusable::default())
         .with_children(|parent| {
             parent.spawn_bundle(TextBundle::from_section("Play", button_text_style.clone()));
         })
+        .insert(MenuButton::Play)
         .insert(PlayButton)
         .id();
 
@@ -142,6 +138,8 @@ fn setup_menu(
                 ))
                 .insert(KeyboardSettingButtonText);
         })
+        .insert(Focusable::default())
+        .insert(MenuButton::Keyboard)
         .insert(KeyboardSettingButton)
         .id();
 
@@ -168,6 +166,8 @@ fn setup_menu(
                 ))
                 .insert(SfxSettingButtonText);
         })
+        .insert(Focusable::default())
+        .insert(MenuButton::Sfx)
         .insert(SfxSettingButton)
         .id();
 
@@ -177,6 +177,7 @@ fn setup_menu(
             color: NORMAL_BUTTON.into(),
             ..default()
         })
+        .insert(Focusable::default())
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle::from_section(
@@ -185,6 +186,7 @@ fn setup_menu(
                 ))
                 .insert(MusicSettingButtonText);
         })
+        .insert(MenuButton::Music)
         .insert(MusicSettingButton)
         .id();
 
@@ -199,105 +201,69 @@ fn setup_menu(
     ]);
 }
 
-fn buttons(
-    mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color) in &mut interaction_query {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
+#[derive(Component)]
+enum MenuButton {
+    Play,
+    Keyboard,
+    Sfx,
+    Music,
 }
 
-fn play_button(
+// Seems like bevy-ui-navigation forces us to write this abomination of a megasystem
+fn button_actions(
+    buttons: Query<&MenuButton>,
+    mut events: EventReader<NavEvent>,
     mut state: ResMut<State<GameState>>,
-    interaction_query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<PlayButton>)>,
+    mut keyboard_setting: ResMut<KeyboardSetting>,
+
+    mut music_setting: ResMut<MusicSetting>,
+    mut text_queries: ParamSet<(
+        Query<&mut Text, With<KeyboardSettingButtonText>>,
+        Query<&mut Text, With<SfxSettingButtonText>>,
+        Query<&mut Text, With<MusicSettingButtonText>>,
+    )>,
+    mut sfx_setting: ResMut<SfxSetting>,
 ) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            state.set(GameState::Playing).unwrap();
-        }
-    }
-}
+    // Note: we have a closure here because the `buttons` query is mutable.
+    // for immutable queries, you can use `.activated_in_query` which returns an iterator.
+    // Do something when player activates (click, press "A" etc.) a `Focusable` button.
 
-fn keyboard_setting_button(
-    interaction_query: Query<
-        &Interaction,
-        (
-            Changed<Interaction>,
-            With<Button>,
-            With<KeyboardSettingButton>,
-        ),
-    >,
-    mut setting: ResMut<KeyboardSetting>,
-    mut text_query: Query<&mut Text, With<KeyboardSettingButtonText>>,
-) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            **setting = match **setting {
-                KeyboardLayout::Azerty => KeyboardLayout::Qwerty,
-                KeyboardLayout::Qwerty => KeyboardLayout::Azerty,
-            };
-
-            for mut text in text_query.iter_mut() {
-                text.sections[0].value = format!("{}", **setting);
+    for button in events.nav_iter().activated_in_query(&buttons) {
+        match button {
+            MenuButton::Play => {
+                state.set(GameState::Playing).unwrap();
             }
-        }
-    }
-}
+            MenuButton::Keyboard => {
+                **keyboard_setting = match **keyboard_setting {
+                    KeyboardLayout::Azerty => KeyboardLayout::Qwerty,
+                    KeyboardLayout::Qwerty => KeyboardLayout::Azerty,
+                };
 
-fn music_setting_button(
-    interaction_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<Button>, With<MusicSettingButton>),
-    >,
-    mut setting: ResMut<MusicSetting>,
-    mut text_query: Query<&mut Text, With<MusicSettingButtonText>>,
-) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            if **setting == 0 {
-                **setting = 100;
-            } else {
-                **setting -= 10;
+                for mut text in text_queries.p0().iter_mut() {
+                    text.sections[0].value = format!("{}", **keyboard_setting);
+                }
             }
+            MenuButton::Sfx => {
+                if **sfx_setting == 0 {
+                    **sfx_setting = 100;
+                } else {
+                    **sfx_setting -= 10;
+                }
 
-            for mut text in text_query.iter_mut() {
-                text.sections[0].value = format!("Music {}%", **setting);
+                for mut text in text_queries.p1().iter_mut() {
+                    text.sections[0].value = format!("SFX {}%", **sfx_setting);
+                }
             }
-        }
-    }
-}
+            MenuButton::Music => {
+                if **music_setting == 0 {
+                    **music_setting = 100;
+                } else {
+                    **music_setting -= 10;
+                }
 
-fn sfx_setting_button(
-    interaction_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<Button>, With<SfxSettingButton>),
-    >,
-    mut setting: ResMut<SfxSetting>,
-    mut text_query: Query<&mut Text, With<SfxSettingButtonText>>,
-) {
-    for interaction in &interaction_query {
-        if *interaction == Interaction::Clicked {
-            if **setting == 0 {
-                **setting = 100;
-            } else {
-                **setting -= 10;
-            }
-
-            for mut text in text_query.iter_mut() {
-                text.sections[0].value = format!("SFX {}%", **setting);
+                for mut text in text_queries.p2().iter_mut() {
+                    text.sections[0].value = format!("Music {}%", **music_setting);
+                }
             }
         }
     }

@@ -18,10 +18,6 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## TODO
 
-- [ ] Art
-  - [X] Vehicle
-  - [X] Finish line
-  - [ ] Input bindings graphic
 - [ ] Audio
   - [X] 3 2 1 go
   - [ ] Swap in final music
@@ -29,7 +25,7 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
   - [X] Bonk
 - [ ] Itch
 - [ ] (Pre-release) Start fresh leaderboard
-- [ ] (Stretch goal) Navigate UI with gamepad
+- [X] (Stretch goal) Navigate UI with gamepad
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Speedometer
 - [ ] (Stretch goal) Textures for track and finish line

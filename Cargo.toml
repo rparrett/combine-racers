@@ -18,6 +18,7 @@ bevy-inspector-egui = { version = "0.12", optional = true }
 leafwing-input-manager = "0.5.1"
 bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "jam" }
 #bevy_jornet = { path = "../jornet/bevy-jornet" }
+bevy-ui-navigation = "0.20.0"
 
 interpolation = "0.2"
 serde_json = "*"

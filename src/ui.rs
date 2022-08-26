@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_ui_navigation::prelude::*;
 use interpolation::Ease;
 
 use crate::{GameAssets, GameState, RaceTime, Trick};
@@ -24,6 +25,14 @@ impl Plugin for UiPlugin {
             .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(cleanup));
     }
 }
+
+pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
+pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0.0, 0.35);
+pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
+pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 
 #[derive(Component)]
 pub struct TrickTextMarker;
@@ -193,6 +202,35 @@ fn trick_text(
     }
 
     timer.reset();
+}
+
+pub fn buttons(
+    mut interaction_query: Query<
+        (&Interaction, &Focusable, &mut UiColor),
+        (Or<(Changed<Interaction>, Changed<Focusable>)>, With<Button>),
+    >,
+) {
+    for (interaction, focusable, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                if matches!(focusable.state(), FocusState::Focused) {
+                    *color = FOCUSED_HOVERED_BUTTON.into()
+                } else {
+                    *color = HOVERED_BUTTON.into();
+                };
+            }
+            Interaction::None => {
+                if matches!(focusable.state(), FocusState::Focused) {
+                    *color = FOCUSED_BUTTON.into()
+                } else {
+                    *color = NORMAL_BUTTON.into();
+                };
+            }
+        }
+    }
 }
 
 fn cleanup(
