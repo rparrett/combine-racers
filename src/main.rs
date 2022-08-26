@@ -68,7 +68,7 @@ struct GameAssets {
 }
 #[derive(AssetCollection)]
 struct AudioAssets {
-    #[asset(path = "7th-race-draft-aiteru-sawato.ogg")]
+    #[asset(path = "7th-race-aiteru-sawato.ogg")]
     music: Handle<AudioSource>,
     #[asset(path = "combine-racers-321go.ogg")]
     three_two_one: Handle<AudioSource>,

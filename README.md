@@ -8,7 +8,7 @@ Do tricks to go fast in your Combine Harvester! Go fast longer by doing a differ
 
 ## Acknowledgements
 
-Music is an original composition by [Aiteru Sawato](https://www.youtube.com/channel/UCXkaOsXAVvxY2HFFRt7PjPQ) produced for this project and redistributed here with their permission.
+`7th-race-aiteru-sawato.ogg` is an original composition by [Aiteru Sawato](https://www.youtube.com/channel/UCXkaOsXAVvxY2HFFRt7PjPQ) produced for this project and redistributed here with their explicit permission.
 
 `NanumPenScript-Tweaked.ttf` is derived from [Nanum Pen Script](https://fonts.adobe.com/fonts/nanum-pen-script) and is licensed under the SIL Open Font License.
 
@@ -18,11 +18,6 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## TODO
 
-- [ ] Audio
-  - [X] 3 2 1 go
-  - [ ] Swap in final music
-  - [X] Trick success
-  - [X] Bonk
 - [ ] Itch
 - [ ] (Pre-release) Start fresh leaderboard
 - [X] (Stretch goal) Navigate UI with gamepad
