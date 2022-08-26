@@ -24,6 +24,7 @@ interpolation = "0.2"
 serde_json = "*"
 serde = "*"
 ron = "0.8"
+rand = "0.8"
 
 # Fix flashing ClearColor on Mac/Chrome
 [patch.crates-io]

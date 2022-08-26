@@ -5,6 +5,7 @@ use bevy_jornet::{
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
+    random_name::random_name,
     settings::LeaderboardSetting,
     ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, TITLE_TEXT},
     GameAssets, GameState, RaceTime,
@@ -377,7 +378,7 @@ fn create_player(
         leaderboard.as_player(player.clone());
     } else {
         info!("creating new player");
-        leaderboard.create_player(None);
+        leaderboard.create_player(Some(&random_name()));
     }
 }
 

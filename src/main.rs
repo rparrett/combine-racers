@@ -5,6 +5,7 @@ mod countdown;
 mod game_over;
 mod leaderboard;
 mod main_menu;
+mod random_name;
 mod save;
 mod settings;
 mod ui;

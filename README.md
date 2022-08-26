@@ -27,4 +27,4 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 - [ ] (Stretch goal) Sticky patches on track
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
-- [ ] (Stretch goal) Use our own name generator for the leaderboard
+- [X] (Stretch goal) Use our own name generator for the leaderboard
