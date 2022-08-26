@@ -9,6 +9,8 @@ mod save;
 mod settings;
 mod ui;
 
+use std::f32::consts::TAU;
+
 use bevy::{
     audio::AudioSink, gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*,
     time::Stopwatch,
@@ -26,7 +28,6 @@ use main_menu::MainMenuPlugin;
 use save::SavePlugin;
 use serde::Deserialize;
 use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting};
-use std::time::Duration;
 use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
@@ -91,18 +92,25 @@ struct TrickStatus {
     back_flips: u32,
     start_x: f32,
 }
-
-#[derive(Component)]
-struct Boost {
-    timer: Timer,
-}
-impl Default for Boost {
-    fn default() -> Self {
-        let mut timer = Timer::from_seconds(BASE_BOOST_TIMER, false);
-        timer.tick(Duration::from_secs_f32(BASE_BOOST_TIMER));
-
-        Self { timer }
+impl TrickStatus {
+    fn reset(&mut self) {
+        self.rotation = 0.;
+        self.front_flips = 0;
+        self.back_flips = 0;
     }
+}
+#[derive(Component, Default, Deref, DerefMut)]
+struct LastTrick(Trick);
+#[derive(Default, Clone, PartialEq, Eq)]
+pub struct Trick {
+    front_flips: u32,
+    back_flips: u32,
+    fakie: bool,
+}
+
+#[derive(Component, Default)]
+struct Boost {
+    remaining: f32,
 }
 
 #[derive(Component)]
@@ -421,6 +429,7 @@ fn spawn_player(
         .insert(SpeedLimit(BASE_SPEED_LIMIT))
         .insert(Boost::default())
         .insert(TrickStatus::default())
+        .insert(LastTrick::default())
         .insert(Player)
         .with_children(|parent| {
             parent
@@ -596,6 +605,7 @@ fn track_trick(
     mut query: Query<
         (
             &mut TrickStatus,
+            &mut LastTrick,
             &Velocity,
             &Transform,
             &WheelsOnGround,
@@ -610,16 +620,24 @@ fn track_trick(
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
-    for (mut trick_status, velocity, transform, wheels, wheels_changed, bonk, mut boost) in
-        query.iter_mut()
+    for (
+        mut trick_status,
+        mut last_trick,
+        velocity,
+        transform,
+        wheels,
+        wheels_changed,
+        bonk,
+        mut boost,
+    ) in query.iter_mut()
     {
         if **bonk {
-            trick_status.rotation = 0.;
-            trick_status.front_flips = 0;
-            trick_status.back_flips = 0;
+            trick_status.reset();
         }
 
         if **wheels == 0 {
+            // if we just left the ground, make a note of our starting
+            // position so we can determine if we went forward or backward
             if wheels_changed.is_changed() {
                 trick_status.start_x = transform.translation.x;
             }
@@ -629,41 +647,46 @@ fn track_trick(
 
             trick_status.rotation += rot.z;
 
-            // TODO back/front reversed when travelling left
-
-            if trick_status.rotation > std::f32::consts::TAU {
+            if trick_status.rotation > TAU {
                 trick_status.back_flips += 1;
-                trick_status.rotation -= std::f32::consts::TAU;
-            } else if trick_status.rotation < -std::f32::consts::TAU {
+                trick_status.rotation -= TAU;
+            } else if trick_status.rotation < -TAU {
                 trick_status.front_flips += 1;
-                trick_status.rotation += std::f32::consts::TAU;
+                trick_status.rotation += TAU;
             }
         } else if wheels_changed.is_changed() {
-            // super generous, because player may have launched from angled ramp
+            // if a wheel just hit the ground
+
+            // round up the remainder of the rotation generously, because
+            // the player may have launched from angled ramp
             if trick_status.rotation > 280.0_f32.to_radians() {
                 trick_status.back_flips += 1;
             } else if trick_status.rotation < -280.0_f32.to_radians() {
                 trick_status.front_flips += 1;
             }
-            if trick_status.front_flips > 0 || trick_status.back_flips > 0 {
-                info!(
-                    "FLIP! fwd{} rev{} (leftover: {})",
-                    trick_status.front_flips,
-                    trick_status.back_flips,
-                    trick_status.rotation.to_degrees()
-                );
 
-                let flips = trick_status.front_flips + trick_status.back_flips;
+            let flips = trick_status.front_flips + trick_status.back_flips;
 
+            if flips > 0 {
                 let fakie = transform.translation.x < trick_status.start_x;
 
-                boost.timer.reset();
-                boost.timer.set_duration(Duration::from_secs_f32(
-                    BASE_BOOST_TIMER + (flips - 1) as f32 * 1.,
-                ));
+                let trick = Trick {
+                    front_flips: trick_status.front_flips,
+                    back_flips: trick_status.back_flips,
+                    fakie,
+                };
 
-                **trick_text =
-                    ui::get_trick_text(trick_status.front_flips, trick_status.back_flips, fakie);
+                let fresh_bonus = if trick != **last_trick { 1. } else { 0. };
+
+                let boost_duration = BASE_BOOST_TIMER + (flips - 1) as f32 * 1. + fresh_bonus;
+
+                boost.remaining += boost_duration;
+
+                info!("boost +{} ({})", boost_duration, boost.remaining);
+
+                **trick_text = ui::get_trick_text(&trick);
+
+                **last_trick = trick.clone();
 
                 audio.play_with_settings(
                     game_audio.trick.clone(),
@@ -671,22 +694,25 @@ fn track_trick(
                 );
             }
 
-            trick_status.rotation = 0.;
-            trick_status.front_flips = 0;
-            trick_status.back_flips = 0;
+            trick_status.reset();
         }
     }
 }
 
 fn boost(time: Res<Time>, mut query: Query<(&mut Boost, &mut SpeedLimit), With<Player>>) {
     for (mut boost, mut speed_limit) in query.iter_mut() {
-        boost.timer.tick(time.delta());
-        if boost.timer.just_finished() {
-            **speed_limit = BASE_SPEED_LIMIT;
-            info!("just finished");
-            info!("speed limit now {}", **speed_limit);
-        } else if !boost.timer.finished() {
+        if boost.remaining <= 0. {
+            return;
+        }
+
+        if speed_limit.0 == BASE_SPEED_LIMIT {
             **speed_limit = BOOST_SPEED_LIMIT;
+            info!("speed limit now {}", **speed_limit);
+        }
+
+        boost.remaining -= time.delta_seconds();
+        if boost.remaining <= 0. {
+            **speed_limit = BASE_SPEED_LIMIT;
             info!("speed limit now {}", **speed_limit);
         }
     }

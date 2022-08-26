@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use interpolation::Ease;
 
-use crate::{GameAssets, GameState, RaceTime};
+use crate::{GameAssets, GameState, RaceTime, Trick};
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
@@ -121,7 +121,7 @@ fn fade_trick_text(
     }
 }
 
-pub fn get_trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String {
+pub fn get_trick_text(trick: &Trick) -> String {
     fn num_text(num: u32) -> Option<&'static str> {
         match num {
             0 | 1 => None,
@@ -134,14 +134,14 @@ pub fn get_trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String 
 
     let mut lines = vec![];
 
-    if front_flips > 0 {
+    if trick.front_flips > 0 {
         let mut parts = vec![];
 
-        if fakie {
+        if trick.fakie {
             parts.push("Fakie");
         }
 
-        if let Some(num) = num_text(front_flips) {
+        if let Some(num) = num_text(trick.front_flips) {
             parts.push(num);
         }
 
@@ -149,14 +149,14 @@ pub fn get_trick_text(front_flips: u32, back_flips: u32, fakie: bool) -> String 
 
         lines.push(parts.join(" "));
     }
-    if back_flips > 0 {
+    if trick.back_flips > 0 {
         let mut parts = vec![];
 
-        if fakie {
+        if trick.fakie {
             parts.push("Fakie");
         }
 
-        if let Some(num) = num_text(back_flips) {
+        if let Some(num) = num_text(trick.back_flips) {
             parts.push(num);
         }
 
