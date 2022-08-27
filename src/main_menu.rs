@@ -54,6 +54,7 @@ const TIPS: &[&str] = &[
     "Press escape or select to end your run early.",
     "Do a double flip for an even longer boost!",
     "Be careful not to bonk your head.",
+    "Get a mega-boost by submitting a 5 star rating*",
 ];
 
 fn setup_menu(
