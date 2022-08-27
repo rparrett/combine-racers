@@ -47,6 +47,18 @@ struct SfxSettingButtonText;
 struct TipText;
 #[derive(Default, Deref, DerefMut)]
 struct TipIndex(usize);
+impl TipIndex {
+    fn next(&mut self) -> usize {
+        let next = self.0;
+
+        self.0 += 1;
+        if self.0 > TIPS.len() - 1 {
+            self.0 = 0;
+        }
+
+        next
+    }
+}
 
 const TIPS: &[&str] = &[
     "Jump and rotate at the same time to do flips!",
@@ -245,7 +257,7 @@ fn setup_menu(
             parent
                 .spawn_bundle(TextBundle {
                     text: Text::from_section(
-                        TIPS[**tip_index].to_owned(),
+                        TIPS[tip_index.next()].to_owned(),
                         TextStyle {
                             font: assets.font.clone(),
                             font_size: 40.0,
@@ -256,11 +268,6 @@ fn setup_menu(
                 })
                 .insert(TipText);
         });
-
-    **tip_index += 1;
-    if **tip_index > TIPS.len() - 1 {
-        **tip_index = 0;
-    }
 }
 
 #[derive(Component)]
