@@ -10,7 +10,8 @@ use crate::{
 pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
+        app.init_resource::<TipIndex>()
+            .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
             .add_system_set(
                 SystemSet::on_update(GameState::MainMenu)
                     .with_system(sfx_volume)
@@ -42,6 +43,17 @@ struct SfxSettingButton;
 
 #[derive(Component)]
 struct SfxSettingButtonText;
+#[derive(Component)]
+struct TipText;
+#[derive(Default, Deref, DerefMut)]
+struct TipIndex(usize);
+
+const TIPS: &[&str] = &[
+    "Jump and rotate at the same time to do flips!",
+    "Earn even more boost by doing a different trick than the last.",
+    "Press escape or select to end your run early.",
+    "Be careful not to bonk your head.",
+];
 
 fn setup_menu(
     mut commands: Commands,
@@ -49,6 +61,7 @@ fn setup_menu(
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
     keyboard: Res<KeyboardSetting>,
+    mut tip_index: ResMut<TipIndex>,
 ) {
     info!("setup_menu");
 
@@ -200,6 +213,52 @@ fn setup_menu(
         sfx_button,
         music_button,
     ]);
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    bottom: Val::Px(40.),
+                    ..default()
+                },
+                margin: UiRect {
+                    left: Val::Auto,
+                    right: Val::Auto,
+                    ..default()
+                },
+                size: Size {
+                    width: Val::Percent(100.),
+                    height: Val::Px(50.),
+                },
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..Default::default()
+            },
+            color: Color::NONE.into(),
+            ..default()
+        })
+        .insert(MainMenuMarker)
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(TextBundle {
+                    text: Text::from_section(
+                        TIPS[**tip_index].to_owned(),
+                        TextStyle {
+                            font: assets.font.clone(),
+                            font_size: 40.0,
+                            color: Color::WHITE,
+                        },
+                    ),
+                    ..Default::default()
+                })
+                .insert(TipText);
+        });
+
+    **tip_index += 1;
+    if **tip_index > TIPS.len() - 1 {
+        **tip_index = 0;
+    }
 }
 
 #[derive(Component)]
