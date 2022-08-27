@@ -1,8 +1,9 @@
 use bevy::prelude::*;
+use bevy_rapier3d::prelude::Velocity;
 use bevy_ui_navigation::prelude::*;
 use interpolation::Ease;
 
-use crate::{GameAssets, GameState, RaceTime, Trick};
+use crate::{Boost, GameAssets, GameState, Player, RaceTime, Trick};
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
@@ -14,6 +15,7 @@ impl Plugin for UiPlugin {
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
                     .with_system(race_time)
+                    .with_system(speedometer_text)
                     .with_system(trick_text),
             )
             .add_system_set(
@@ -33,6 +35,8 @@ pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
+pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
+pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 
 #[derive(Component)]
 pub struct TrickTextMarker;
@@ -45,6 +49,11 @@ impl Default for TrickTextTimer {
 }
 #[derive(Component)]
 pub struct RaceTimeText;
+
+#[derive(Component)]
+pub struct SpeedometerMarker;
+#[derive(Component)]
+pub struct SpeedometerText;
 
 #[derive(Default, Deref, DerefMut)]
 pub struct TrickText(String);
@@ -110,6 +119,48 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             ..Default::default()
         })
         .insert(TrickTextMarker);
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    right: Val::Px(5.),
+                    bottom: Val::Px(5.),
+                    ..default()
+                },
+                margin: UiRect {
+                    left: Val::Auto,
+                    right: Val::Auto,
+                    ..default()
+                },
+                size: Size {
+                    width: Val::Percent(100.),
+                    height: Val::Px(60.),
+                },
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..Default::default()
+            },
+            color: Color::NONE.into(),
+            ..default()
+        })
+        .insert(SpeedometerMarker)
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(TextBundle {
+                    text: Text::from_section(
+                        "0%",
+                        TextStyle {
+                            font: assets.font.clone(),
+                            font_size: 60.0,
+                            color: Color::WHITE,
+                        },
+                    ),
+                    ..Default::default()
+                })
+                .insert(SpeedometerText);
+        });
 }
 
 fn fade_trick_text(
@@ -204,6 +255,22 @@ fn trick_text(
     timer.reset();
 }
 
+fn speedometer_text(
+    query: Query<(&Velocity, &Boost), With<Player>>,
+    mut text_query: Query<&mut Text, With<SpeedometerText>>,
+) {
+    for (velocity, boost) in query.iter() {
+        for mut text in text_query.iter_mut() {
+            text.sections[0].value = format!("{:.0}kph", (velocity.linvel.length() * 3.5).floor());
+            if boost.remaining > 0.0 {
+                text.sections[0].style.color = BOOSTED_TEXT
+            } else {
+                text.sections[0].style.color = TITLE_TEXT
+            }
+        }
+    }
+}
+
 pub fn buttons(
     mut interaction_query: Query<
         (&Interaction, &Focusable, &mut UiColor),
@@ -235,7 +302,14 @@ pub fn buttons(
 
 fn cleanup(
     mut commands: Commands,
-    query: Query<Entity, Or<(With<RaceTimeText>, With<TrickTextMarker>)>>,
+    query: Query<
+        Entity,
+        Or<(
+            With<RaceTimeText>,
+            With<TrickTextMarker>,
+            With<SpeedometerMarker>,
+        )>,
+    >,
 ) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();

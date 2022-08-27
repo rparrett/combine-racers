@@ -7,7 +7,7 @@ use bevy_ui_navigation::prelude::*;
 use crate::{
     random_name::random_name,
     settings::LeaderboardSetting,
-    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, TITLE_TEXT},
+    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, OUR_SCORE_TEXT, TITLE_TEXT},
     GameAssets, GameState, RaceTime,
 };
 
@@ -180,7 +180,7 @@ fn update_leaderboard(
                         TextStyle {
                             font: assets.font.clone(),
                             font_size: 30.,
-                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                            color: if is_us { OUR_SCORE_TEXT } else { TITLE_TEXT },
                         },
                     ),
                     style: Style {
@@ -201,7 +201,7 @@ fn update_leaderboard(
                         TextStyle {
                             font: assets.font.clone(),
                             font_size: 30.,
-                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                            color: if is_us { OUR_SCORE_TEXT } else { TITLE_TEXT },
                         },
                     ),
                     style: Style {
@@ -223,7 +223,7 @@ fn update_leaderboard(
                         TextStyle {
                             font: assets.font.clone(),
                             font_size: 30.,
-                            color: if is_us { Color::PURPLE } else { Color::WHITE },
+                            color: if is_us { OUR_SCORE_TEXT } else { TITLE_TEXT },
                         },
                     ),
                     ..default()
