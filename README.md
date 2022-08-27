@@ -18,9 +18,9 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## TODO
 
-- [ ] Itch
 - [ ] (Pre-release) Start fresh leaderboard
 - [X] (Stretch goal) Navigate UI with gamepad
+- [ ] (Stretch goal) Navigate UI with keyboard
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Speedometer
 - [ ] (Stretch goal) Textures for track and finish line
