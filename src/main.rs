@@ -660,10 +660,11 @@ fn track_trick(
             // if a wheel just hit the ground
 
             // round up the remainder of the rotation generously, because
-            // the player may have launched from angled ramp
-            if trick_status.rotation > 280.0_f32.to_radians() {
+            // the player may have launched from angled ramp. maybe we
+            // should keep track of the launch angle?
+            if trick_status.rotation > 260.0_f32.to_radians() {
                 trick_status.back_flips += 1;
-            } else if trick_status.rotation < -280.0_f32.to_radians() {
+            } else if trick_status.rotation < -260.0_f32.to_radians() {
                 trick_status.front_flips += 1;
             }
 
