@@ -6,6 +6,8 @@ For Bevy Jam #2.
 
 Do tricks to go fast in your Combine Harvester! Go fast longer by doing a different trick than the last one.
 
+If you're building from source, the leaderboard not will be unavailable.
+
 ## Acknowledgements
 
 `7th-race-aiteru-sawato.ogg` is an original composition by [Aiteru Sawato](https://www.youtube.com/channel/UCXkaOsXAVvxY2HFFRt7PjPQ) produced for this project and redistributed here with their explicit permission.
