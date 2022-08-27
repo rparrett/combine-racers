@@ -52,6 +52,7 @@ const TIPS: &[&str] = &[
     "Jump and rotate at the same time to do flips!",
     "Earn even more boost by doing a different trick than the last.",
     "Press escape or select to end your run early.",
+    "Do a double flip for an even longer boost!",
     "Be careful not to bonk your head.",
 ];
 
