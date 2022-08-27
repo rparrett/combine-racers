@@ -19,7 +19,7 @@ use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
-use bevy_ui_navigation::DefaultNavigationPlugins;
+use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
@@ -175,6 +175,10 @@ fn main() {
     .add_plugins(DefaultPlugins)
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
     //.add_plugin(RapierDebugRenderPlugin::default())
+    .insert_resource(InputMapping {
+        keyboard_navigation: true,
+        ..default()
+    })
     .add_plugin(InputManagerPlugin::<Action>::default())
     .add_plugins(DefaultNavigationPlugins)
     .add_plugin(UiPlugin)

@@ -1,5 +1,5 @@
 use bevy::{audio::AudioSink, prelude::*};
-use bevy_ui_navigation::prelude::*;
+use bevy_ui_navigation::{prelude::*, systems::InputMapping};
 
 use crate::{
     settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
@@ -15,6 +15,7 @@ impl Plugin for MainMenuPlugin {
                 SystemSet::on_update(GameState::MainMenu)
                     .with_system(sfx_volume)
                     .with_system(music_volume)
+                    .with_system(keyboard_setting)
                     .with_system(button_actions)
                     .with_system(buttons.after(NavRequestSystem)),
             )
@@ -294,6 +295,21 @@ fn music_volume(
     if let Some(controller) = controller {
         if let Some(sink) = audio_sinks.get(&controller.0) {
             sink.set_volume(**music_setting as f32 / 100.)
+        }
+    }
+}
+
+fn keyboard_setting(setting: Res<KeyboardSetting>, mut mapping: ResMut<InputMapping>) {
+    if setting.is_changed() {
+        match **setting {
+            KeyboardLayout::Qwerty => {
+                mapping.key_up = KeyCode::W;
+                mapping.key_down = KeyCode::S;
+            }
+            KeyboardLayout::Azerty => {
+                mapping.key_up = KeyCode::Z;
+                mapping.key_down = KeyCode::S;
+            }
         }
     }
 }

@@ -19,14 +19,14 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 ## TODO
 
 - [ ] (Pre-release) Start fresh leaderboard
-- [X] (Stretch goal) Navigate UI with gamepad
-- [ ] (Stretch goal) Navigate UI with keyboard
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Speedometer
 - [ ] (Stretch goal) Textures for track and finish line
 - [ ] (Stretch goal) Sticky patches on track
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
+- [X] (Stretch goal) Navigate UI with gamepad
+- [X] (Stretch goal) Navigate UI with keyboard
 - [X] (Stretch goal) Use our own name generator for the leaderboard
 
 ## Track workflow
