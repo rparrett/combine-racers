@@ -37,7 +37,6 @@ pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
-
 #[derive(Component)]
 pub struct TrickTextMarker;
 #[derive(Deref, DerefMut)]
@@ -47,6 +46,8 @@ impl Default for TrickTextTimer {
         Self(Timer::from_seconds(2., false))
     }
 }
+#[derive(Component)]
+pub struct RaceTimeMarker;
 #[derive(Component)]
 pub struct RaceTimeText;
 
@@ -79,6 +80,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             color: Color::NONE.into(),
             ..default()
         })
+        .insert(RaceTimeMarker)
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle {
@@ -305,7 +307,7 @@ fn cleanup(
     query: Query<
         Entity,
         Or<(
-            With<RaceTimeText>,
+            With<RaceTimeMarker>,
             With<TrickTextMarker>,
             With<SpeedometerMarker>,
         )>,
