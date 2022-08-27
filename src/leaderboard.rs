@@ -7,7 +7,7 @@ use bevy_ui_navigation::prelude::*;
 use crate::{
     random_name::random_name,
     settings::LeaderboardSetting,
-    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, OUR_SCORE_TEXT, TITLE_TEXT},
+    ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, OUR_SCORE_TEXT, TITLE_TEXT},
     GameAssets, GameState, RaceTime,
 };
 
@@ -290,7 +290,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            color: Color::rgb(0.1, 0.1, 0.1).into(),
+            color: CONTAINER_BACKGROUND.into(),
             ..default()
         })
         .id();

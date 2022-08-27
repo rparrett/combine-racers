@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
-    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON, TITLE_TEXT},
+    ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, TITLE_TEXT},
     GameAssets, GameState,
 };
 
@@ -78,7 +78,7 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            color: Color::rgb(0.1, 0.1, 0.1).into(),
+            color: CONTAINER_BACKGROUND.into(),
             ..default()
         })
         .id();

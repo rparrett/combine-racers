@@ -3,7 +3,7 @@ use bevy_ui_navigation::{prelude::*, systems::InputMapping};
 
 use crate::{
     settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
-    ui::{buttons, BUTTON_TEXT, NORMAL_BUTTON},
+    ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON},
     AudioAssets, GameAssets, GameState, MusicController,
 };
 
@@ -84,7 +84,7 @@ fn setup_menu(
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            color: Color::rgb(0.1, 0.1, 0.1).into(),
+            color: CONTAINER_BACKGROUND.into(),
             ..default()
         })
         .insert(MainMenuMarker)

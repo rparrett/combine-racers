@@ -37,6 +37,7 @@ pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
+pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 
 #[derive(Component)]
 pub struct GameUiMarker;
