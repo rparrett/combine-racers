@@ -37,6 +37,9 @@ pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
+
+#[derive(Component)]
+pub struct GameUiMarker;
 #[derive(Component)]
 pub struct TrickTextMarker;
 #[derive(Deref, DerefMut)]
@@ -47,15 +50,9 @@ impl Default for TrickTextTimer {
     }
 }
 #[derive(Component)]
-pub struct RaceTimeMarker;
-#[derive(Component)]
 pub struct RaceTimeText;
-
-#[derive(Component)]
-pub struct SpeedometerMarker;
 #[derive(Component)]
 pub struct SpeedometerText;
-
 #[derive(Default, Deref, DerefMut)]
 pub struct TrickText(String);
 
@@ -80,7 +77,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             color: Color::NONE.into(),
             ..default()
         })
-        .insert(RaceTimeMarker)
+        .insert(GameUiMarker)
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle {
@@ -120,6 +117,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             .with_alignment(TextAlignment::CENTER),
             ..Default::default()
         })
+        .insert(GameUiMarker)
         .insert(TrickTextMarker);
 
     commands
@@ -147,7 +145,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             color: Color::NONE.into(),
             ..default()
         })
-        .insert(SpeedometerMarker)
+        .insert(GameUiMarker)
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle {
@@ -302,17 +300,7 @@ pub fn buttons(
     }
 }
 
-fn cleanup(
-    mut commands: Commands,
-    query: Query<
-        Entity,
-        Or<(
-            With<RaceTimeMarker>,
-            With<TrickTextMarker>,
-            With<SpeedometerMarker>,
-        )>,
-    >,
-) {
+fn cleanup(mut commands: Commands, query: Query<Entity, With<GameUiMarker>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
