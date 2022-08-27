@@ -21,7 +21,6 @@ bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "jam" }
 bevy-ui-navigation = "0.20.0"
 
 interpolation = "0.2"
-serde_json = "*"
 serde = "*"
 ron = "0.8"
 rand = "0.8"

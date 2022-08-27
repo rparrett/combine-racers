@@ -13,8 +13,7 @@ mod ui;
 use std::f32::consts::TAU;
 
 use bevy::{
-    audio::AudioSink, gltf::GltfExtras, log::LogSettings, pbr::PointLightShadowMap, prelude::*,
-    time::Stopwatch,
+    audio::AudioSink, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -28,7 +27,6 @@ use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
 use save::SavePlugin;
-use serde::Deserialize;
 use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting};
 use ui::{TrickText, UiPlugin};
 
@@ -261,58 +259,59 @@ fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
 
 fn decorate_track(
     mut commands: Commands,
-    query: Query<(Entity, &GltfExtras, &Children)>,
-    mesh_query: Query<(Entity, &Handle<Mesh>), Without<Collider>>,
+    mesh_query: Query<(Entity, &Name, &Handle<Mesh>), Without<Collider>>,
     meshes: Res<Assets<Mesh>>,
     mut visibility_query: Query<&mut Visibility>,
     mut state: ResMut<State<GameState>>,
 ) {
+    fn chop_name(name: &str) -> Option<&str> {
+        name.rsplitn(2, '.').last()
+    }
+
     let mut decorated = false;
 
-    for (entity, extras, children) in query.iter() {
-        decorated = true;
-        #[derive(Deserialize)]
-        struct TrackExtra {
-            object_type: String,
-        }
+    for (mesh_entity, name, mesh_handle) in mesh_query.iter() {
+        match chop_name(&**name) {
+            Some("Track") => {
+                decorated = true;
 
-        if let Ok(v) = serde_json::from_str::<TrackExtra>(&extras.value) {
-            if v.object_type == "track" {
-                for (mesh_entity, mesh_handle) in mesh_query.iter_many(children) {
-                    commands
-                        .entity(mesh_entity)
-                        .insert(ColliderDebugColor(Color::GREEN))
-                        .insert(
-                            Collider::from_bevy_mesh(
-                                meshes.get(mesh_handle).unwrap(),
-                                &ComputedColliderShape::TriMesh,
-                            )
-                            .unwrap(),
+                commands
+                    .entity(mesh_entity)
+                    .insert(ColliderDebugColor(Color::GREEN))
+                    .insert(
+                        Collider::from_bevy_mesh(
+                            meshes.get(mesh_handle).unwrap(),
+                            &ComputedColliderShape::TriMesh,
                         )
-                        .insert(Track);
+                        .unwrap(),
+                    )
+                    .insert(Track);
 
-                    info!("Added collider to {:?}", entity);
-                }
-            } else if v.object_type == "finish_line" {
-                for (mesh_entity, mesh_handle) in mesh_query.iter_many(children) {
-                    commands
-                        .entity(mesh_entity)
-                        .insert(ColliderDebugColor(Color::GRAY))
-                        .insert(
-                            Collider::from_bevy_mesh(
-                                meshes.get(mesh_handle).unwrap(),
-                                &ComputedColliderShape::TriMesh,
-                            )
-                            .unwrap(),
+                info!("Added track collider to {:?}", mesh_entity);
+            }
+            Some("FinishLineCollider") => {
+                decorated = true;
+
+                commands
+                    .entity(mesh_entity)
+                    .insert(ColliderDebugColor(Color::GRAY))
+                    .insert(
+                        Collider::from_bevy_mesh(
+                            meshes.get(mesh_handle).unwrap(),
+                            &ComputedColliderShape::TriMesh,
                         )
-                        .insert(Sensor)
-                        .insert(FinishLine);
-                    info!("Added collider to {:?}", entity);
-                }
-                if let Ok(mut visibility) = visibility_query.get_mut(entity) {
+                        .unwrap(),
+                    )
+                    .insert(Sensor)
+                    .insert(FinishLine);
+
+                if let Ok(mut visibility) = visibility_query.get_mut(mesh_entity) {
                     visibility.is_visible = false;
                 }
+
+                info!("Added finish line collider to {:?}", mesh_entity);
             }
+            _ => {}
         }
     }
 

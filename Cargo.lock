@@ -1184,7 +1184,6 @@ dependencies = [
  "rand",
  "ron 0.8.0",
  "serde",
- "serde_json",
  "web-sys",
 ]
 
