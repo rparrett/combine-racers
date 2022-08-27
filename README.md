@@ -28,3 +28,21 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 - [ ] (Stretch goal) Barrel roll trick
 - [ ] (Stretch goal) Lava at bottom of map
 - [X] (Stretch goal) Use our own name generator for the leaderboard
+
+## Track workflow
+
+- Create path on grid in inkscape (save this)
+- Jone all separate paths into one path
+- Stroke path
+- Convert stroke to path (save this separately)
+- Import stroke path into blender
+- Scale by 500 (s500) and (g) move start of track just below origin
+- Enter edit mode and select all
+- Select extrude tool and click and drag
+- While dragging, type 30 to extrude 30 units
+- Enter object mode and select the track
+- Move -15 units in z (gz-15)
+- Select all and apply all transformations (command-a)
+- Rename track mesh to `Track`
+- Add a cube and name the mesh `FinishLineCollider`
+- Export GLTF. Check remember. Uncheck +Y Up.
