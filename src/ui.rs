@@ -262,7 +262,7 @@ fn speedometer_text(
 ) {
     for (velocity, boost) in query.iter() {
         for mut text in text_query.iter_mut() {
-            text.sections[0].value = format!("{:.0}kph", (velocity.linvel.length() * 3.5).floor());
+            text.sections[0].value = format!("{:.0} kph", (velocity.linvel.length() * 3.5).floor());
             if boost.remaining > 0.0 {
                 text.sections[0].style.color = BOOSTED_TEXT
             } else {
