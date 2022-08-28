@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use bevy::prelude::*;
 use bevy_jornet::{
     CreatePlayerEvent, JornetPlugin, Leaderboard, RefreshLeaderboardEvent, SendScoreEvent,
@@ -137,14 +139,17 @@ fn update_leaderboard(
         let container = container_query.single();
         commands.entity(container).despawn_descendants();
 
-        let leaderboard = leaderboard.get_leaderboard();
+        let mut leaderboard = leaderboard.get_leaderboard();
+        leaderboard
+            .sort_unstable_by(|s1, s2| s1.score.partial_cmp(&s2.score).unwrap_or(Ordering::Equal));
+        leaderboard.truncate(10);
 
         // TODO check if leaderboard is empty, which seems to happen occasionally. Spawn a
         // message about that.
 
         let has_us = leaderboard
             .iter()
-            .any(|score| player.name == score.player && score.score == -time.elapsed_secs());
+            .any(|score| player.name == score.player && score.score == time.elapsed_secs());
 
         for (i, score) in leaderboard.iter().enumerate() {
             // When we have a fresh leaderboard (when not refreshing), we assume
@@ -154,9 +159,9 @@ fn update_leaderboard(
                 if !has_us && i == leaderboard.len() - 1 {
                     (time.elapsed_secs(), &player.name, true, "?".to_string())
                 } else {
-                    let is_us = player.name == score.player && score.score == -time.elapsed_secs();
+                    let is_us = player.name == score.player && score.score == time.elapsed_secs();
 
-                    (-score.score, &score.player, is_us, format!("{}", i + 1))
+                    (score.score, &score.player, is_us, format!("{}", i + 1))
                 };
 
             let row = commands
@@ -384,7 +389,7 @@ fn create_player(
 
 fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
     info!("sending score. player is: {:?}", leaderboard.get_player());
-    leaderboard.send_score(-race_time.elapsed_secs());
+    leaderboard.send_score(race_time.elapsed_secs());
 }
 
 fn button_actions(
