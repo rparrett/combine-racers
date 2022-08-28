@@ -20,7 +20,7 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## TODO
 
-- [ ] (Pre-release) Start fresh leaderboard
+- [ ] (Pre-release) Reset leaderboard
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Textures for track and finish line
 - [ ] (Stretch goal) Sticky patches on track
