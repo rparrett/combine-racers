@@ -37,6 +37,8 @@ const BASE_BOOST_TIMER: f32 = 2.;
 
 #[derive(Component, Default, Deref, DerefMut)]
 struct WheelsOnGround(u8);
+#[derive(Component, Default, Deref, DerefMut)]
+struct JumpWheelsOnGround(u8);
 
 #[derive(Component, Debug, Default, Deref, DerefMut)]
 struct BonkStatus(bool);
@@ -45,6 +47,14 @@ struct BonkStatus(bool);
 struct Player;
 #[derive(Component)]
 struct Wheel;
+/// A special wheel, slightly larger than the normal wheel. When at
+/// least one JumpWheel is touching the track, the player is allowed
+/// to jump.
+///
+/// This works around some frustrating jank where the player might be
+/// "mid-air" for 5 frames at a time while travelling on flat ground.
+#[derive(Component)]
+struct JumpWheel;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
@@ -91,12 +101,14 @@ struct TrickStatus {
     front_flips: u32,
     back_flips: u32,
     start_x: f32,
+    hang_time: f32,
 }
 impl TrickStatus {
     fn reset(&mut self) {
         self.rotation = 0.;
         self.front_flips = 0;
         self.back_flips = 0;
+        self.hang_time = 0.;
     }
 }
 #[derive(Component, Default, Deref, DerefMut)]
@@ -423,6 +435,7 @@ fn spawn_player(
         .insert(axes)
         .insert(Velocity::default())
         .insert(WheelsOnGround::default())
+        .insert(JumpWheelsOnGround::default())
         .insert(BonkStatus::default())
         .insert(Collider::cuboid(1., 1., 1.))
         .insert(ColliderDebugColor(Color::ORANGE))
@@ -460,6 +473,28 @@ fn spawn_player(
                 .insert(Friction::coefficient(0.1))
                 .insert(Restitution::coefficient(0.0))
                 .insert(Wheel);
+            parent
+                .spawn_bundle(TransformBundle {
+                    local: Transform::from_translation(Vec3::new(-1.5, -0.5, 0.)),
+                    ..default()
+                })
+                .insert(ActiveEvents::COLLISION_EVENTS)
+                .insert(Collider::ball(1.1))
+                .insert(ColliderDebugColor(Color::ORANGE))
+                .insert(ColliderMassProperties::Density(0.0))
+                .insert(Sensor)
+                .insert(JumpWheel);
+            parent
+                .spawn_bundle(TransformBundle {
+                    local: Transform::from_translation(Vec3::new(1.5, -0.5, 0.)),
+                    ..default()
+                })
+                .insert(ActiveEvents::COLLISION_EVENTS)
+                .insert(Collider::ball(1.1))
+                .insert(ColliderDebugColor(Color::ORANGE))
+                .insert(ColliderMassProperties::Density(0.0))
+                .insert(Sensor)
+                .insert(JumpWheel);
         });
 }
 
@@ -471,6 +506,7 @@ fn player_movement(
             &mut ExternalImpulse,
             &mut Velocity,
             &WheelsOnGround,
+            &JumpWheelsOnGround,
             &Transform,
         ),
         With<Player>,
@@ -481,7 +517,9 @@ fn player_movement(
         return;
     }
 
-    for (action_state, mut impulse, mut velocity, wheels, transform) in query.iter_mut() {
+    for (action_state, mut impulse, mut velocity, wheels, jump_wheels, transform) in
+        query.iter_mut()
+    {
         if action_state.pressed(Action::Left) && **wheels >= 1 {
             impulse.impulse = transform.rotation * -Vec3::X * 500. * time.delta_seconds();
         }
@@ -494,7 +532,7 @@ fn player_movement(
         if action_state.pressed(Action::RotateRight) {
             velocity.angvel += -Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
-        if action_state.just_pressed(Action::Jump) && wheels.0 >= 1 {
+        if action_state.just_pressed(Action::Jump) && jump_wheels.0 >= 1 {
             impulse.impulse = transform.rotation * Vec3::Y * 175.;
         }
     }
@@ -521,10 +559,18 @@ fn camera_follow(
 fn collision_events(
     mut collision_events: EventReader<CollisionEvent>,
     wheel_query: Query<Entity, With<Wheel>>,
+    jump_wheel_query: Query<Entity, With<JumpWheel>>,
     track_query: Query<Entity, With<Track>>,
     finish_line_query: Query<Entity, With<FinishLine>>,
     body_query: Query<Entity, With<Player>>,
-    mut player_query: Query<(&mut WheelsOnGround, &mut BonkStatus), With<Player>>,
+    mut player_query: Query<
+        (
+            &mut WheelsOnGround,
+            &mut JumpWheelsOnGround,
+            &mut BonkStatus,
+        ),
+        With<Player>,
+    >,
     mut race_time: ResMut<RaceTime>,
     mut finished_event: EventWriter<FinishedEvent>,
     mut trick_text: ResMut<TrickText>,
@@ -535,10 +581,17 @@ fn collision_events(
                 let finish_line = finish_line_query.iter_many([e1, e2]).count() > 0;
                 let track = track_query.iter_many([e1, e2]).count() > 0;
                 let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
+                let jump_wheel = jump_wheel_query.iter_many([e1, e2]).count() > 0;
                 let body = body_query.iter_many([e1, e2]).count() > 0;
 
+                if jump_wheel && track {
+                    for (_, mut wheels, _) in player_query.iter_mut() {
+                        wheels.0 += 1;
+                    }
+                }
+
                 if wheel && track {
-                    for (mut wheels, mut bonk) in player_query.iter_mut() {
+                    for (mut wheels, _, mut bonk) in player_query.iter_mut() {
                         wheels.0 += 1;
 
                         if wheels.0 == 2 {
@@ -559,7 +612,7 @@ fn collision_events(
                 }
 
                 if body && track {
-                    for (_, mut bonk) in player_query.iter_mut() {
+                    for (_, _, mut bonk) in player_query.iter_mut() {
                         // don't use **bonk, it will trigger change detection
                         if !bonk.0 {
                             **trick_text = "BONK!".to_string();
@@ -571,9 +624,16 @@ fn collision_events(
             CollisionEvent::Stopped(e1, e2, _) => {
                 let track = track_query.iter_many([e1, e2]).count() > 0;
                 let wheel = wheel_query.iter_many([e1, e2]).count() > 0;
+                let jump_wheel = jump_wheel_query.iter_many([e1, e2]).count() > 0;
 
                 if track && wheel {
-                    for (mut wheels, _) in player_query.iter_mut() {
+                    for (mut wheels, _, _) in player_query.iter_mut() {
+                        wheels.0 -= 1;
+                    }
+                }
+
+                if track && jump_wheel {
+                    for (_, mut wheels, _) in player_query.iter_mut() {
                         wheels.0 -= 1;
                     }
                 }
@@ -646,12 +706,14 @@ fn track_trick(
             // position so we can determine if we went forward or backward
             if wheels_changed.is_changed() {
                 trick_status.start_x = transform.translation.x;
+                trick_status.hang_time = 0.;
             }
 
             let elapsed = time.delta_seconds();
             let rot = velocity.angvel * elapsed;
 
             trick_status.rotation += rot.z;
+            trick_status.hang_time += elapsed;
 
             if trick_status.rotation > TAU {
                 trick_status.back_flips += 1;
