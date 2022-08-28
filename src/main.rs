@@ -158,6 +158,13 @@ impl Default for Zoom {
         }
     }
 }
+#[derive(Component, Deref, DerefMut)]
+struct JumpCooldown(bool);
+impl Default for JumpCooldown {
+    fn default() -> Self {
+        Self(true)
+    }
+}
 
 struct FinishedEvent;
 
@@ -436,6 +443,7 @@ fn spawn_player(
         .insert(Velocity::default())
         .insert(WheelsOnGround::default())
         .insert(JumpWheelsOnGround::default())
+        .insert(JumpCooldown::default())
         .insert(BonkStatus::default())
         .insert(Collider::cuboid(1., 1., 1.))
         .insert(ColliderDebugColor(Color::ORANGE))
@@ -507,6 +515,7 @@ fn player_movement(
             &mut Velocity,
             &WheelsOnGround,
             &JumpWheelsOnGround,
+            &mut JumpCooldown,
             &Transform,
         ),
         With<Player>,
@@ -517,8 +526,15 @@ fn player_movement(
         return;
     }
 
-    for (action_state, mut impulse, mut velocity, wheels, jump_wheels, transform) in
-        query.iter_mut()
+    for (
+        action_state,
+        mut impulse,
+        mut velocity,
+        wheels,
+        jump_wheels,
+        mut jump_cooldown,
+        transform,
+    ) in query.iter_mut()
     {
         if action_state.pressed(Action::Left) && **wheels >= 1 {
             impulse.impulse = transform.rotation * -Vec3::X * 500. * time.delta_seconds();
@@ -532,8 +548,10 @@ fn player_movement(
         if action_state.pressed(Action::RotateRight) {
             velocity.angvel += -Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
-        if action_state.just_pressed(Action::Jump) && jump_wheels.0 >= 1 {
+        if action_state.just_pressed(Action::Jump) && jump_wheels.0 >= 1 && !**jump_cooldown {
             impulse.impulse = transform.rotation * Vec3::Y * 175.;
+
+            **jump_cooldown = true;
         }
     }
 }
@@ -568,6 +586,7 @@ fn collision_events(
             &mut WheelsOnGround,
             &mut JumpWheelsOnGround,
             &mut BonkStatus,
+            &mut JumpCooldown,
         ),
         With<Player>,
     >,
@@ -585,13 +604,17 @@ fn collision_events(
                 let body = body_query.iter_many([e1, e2]).count() > 0;
 
                 if jump_wheel && track {
-                    for (_, mut wheels, _) in player_query.iter_mut() {
+                    for (_, mut wheels, _, mut jump_cooldown) in player_query.iter_mut() {
                         wheels.0 += 1;
+
+                        if wheels.0 == 2 {
+                            **jump_cooldown = false;
+                        }
                     }
                 }
 
                 if wheel && track {
-                    for (mut wheels, _, mut bonk) in player_query.iter_mut() {
+                    for (mut wheels, _, mut bonk, _) in player_query.iter_mut() {
                         wheels.0 += 1;
 
                         if wheels.0 == 2 {
@@ -612,7 +635,7 @@ fn collision_events(
                 }
 
                 if body && track {
-                    for (_, _, mut bonk) in player_query.iter_mut() {
+                    for (_, _, mut bonk, _) in player_query.iter_mut() {
                         // don't use **bonk, it will trigger change detection
                         if !bonk.0 {
                             **trick_text = "BONK!".to_string();
@@ -627,13 +650,13 @@ fn collision_events(
                 let jump_wheel = jump_wheel_query.iter_many([e1, e2]).count() > 0;
 
                 if track && wheel {
-                    for (mut wheels, _, _) in player_query.iter_mut() {
+                    for (mut wheels, _, _, _) in player_query.iter_mut() {
                         wheels.0 -= 1;
                     }
                 }
 
                 if track && jump_wheel {
-                    for (_, mut wheels, _) in player_query.iter_mut() {
+                    for (_, mut wheels, _, _) in player_query.iter_mut() {
                         wheels.0 -= 1;
                     }
                 }
