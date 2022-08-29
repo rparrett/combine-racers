@@ -5,6 +5,7 @@ mod countdown;
 mod game_over;
 mod leaderboard;
 mod main_menu;
+mod music_fade_in;
 mod random_name;
 mod save;
 mod settings;
@@ -26,8 +27,9 @@ use interpolation::{Ease, Lerp};
 use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
 use leafwing_input_manager::prelude::*;
 use main_menu::MainMenuPlugin;
+use music_fade_in::MusicFadeInPlugin;
 use save::SavePlugin;
-use settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting};
+use settings::{KeyboardLayout, KeyboardSetting, SfxSetting};
 use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
@@ -205,7 +207,8 @@ fn main() {
     .add_plugin(CountdownPlugin)
     .add_plugin(LeaderboardPlugin)
     .add_plugin(GameOverPlugin)
-    .add_plugin(SavePlugin);
+    .add_plugin(SavePlugin)
+    .add_plugin(MusicFadeInPlugin);
 
     #[cfg(feature = "inspector")]
     app.add_plugin(WorldInspectorPlugin::new());
@@ -214,11 +217,7 @@ fn main() {
         .init_resource::<Zoom>()
         .add_event::<FinishedEvent>()
         .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
-        .add_system_set(
-            SystemSet::on_enter(GameState::Decorating)
-                .with_system(setup_game)
-                .with_system(music),
-        )
+        .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
         .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
         .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
         .add_system_set_to_stage(
@@ -863,20 +862,6 @@ fn bonk_sound(
             );
         }
     }
-}
-
-fn music(
-    mut commands: Commands,
-    audio_assets: Res<AudioAssets>,
-    audio_sinks: Res<Assets<AudioSink>>,
-    audio: Res<Audio>,
-    music_setting: Res<MusicSetting>,
-) {
-    let handle = audio_sinks.get_handle(audio.play_with_settings(
-        audio_assets.music.clone(),
-        PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
-    ));
-    commands.insert_resource(MusicController(handle));
 }
 
 fn death(
