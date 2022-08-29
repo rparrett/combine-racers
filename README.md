@@ -1,6 +1,6 @@
 # Combine Racers
 
-For Bevy Jam #2.
+For Bevy Jam #2. [v0.1.11](https://github.com/rparrett/combine-racers/tree/v0.1.11) is the version that was submitted.
 
 [Play on itch.io](https://euclidean-whale.itch.io/combine-racers)
 
