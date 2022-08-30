@@ -6,7 +6,7 @@ For Bevy Jam #2. [v0.1.11](https://github.com/rparrett/combine-racers/tree/v0.1.
 
 Do tricks to go fast in your Combine Harvester! Go fast longer by doing a different trick than the last one.
 
-If you're building from source, the leaderboard not will be unavailable.
+If you're building from source, the leaderboard will be unavailable.
 
 ## Acknowledgements
 
@@ -20,7 +20,7 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## TODO
 
-- [ ] (Pre-release) Reset leaderboard
+- [X] (Pre-release) Reset leaderboard
 - [ ] (Stretch goal) Boost gauge
 - [ ] (Stretch goal) Textures for track and finish line
 - [ ] (Stretch goal) Sticky patches on track
