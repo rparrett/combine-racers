@@ -144,9 +144,6 @@ fn update_leaderboard(
             .sort_unstable_by(|s1, s2| s1.score.partial_cmp(&s2.score).unwrap_or(Ordering::Equal));
         leaderboard.truncate(10);
 
-        // TODO check if leaderboard is empty, which seems to happen occasionally. Spawn a
-        // message about that.
-
         let has_us = leaderboard
             .iter()
             .any(|score| player.name == score.player && score.score == time.elapsed_secs());
@@ -397,10 +394,6 @@ fn button_actions(
     mut events: EventReader<NavEvent>,
     mut state: ResMut<State<GameState>>,
 ) {
-    // Note: we have a closure here because the `buttons` query is mutable.
-    // for immutable queries, you can use `.activated_in_query` which returns an iterator.
-    // Do something when player activates (click, press "A" etc.) a `Focusable` button.
-
     for button in events.nav_iter().activated_in_query(&buttons) {
         match button {
             LeaderboardButton::PlayAgain => {
