@@ -25,7 +25,7 @@ use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
 use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
-use leafwing_input_manager::prelude::*;
+use leafwing_input_manager::{axislike::AxisType, prelude::*};
 use main_menu::MainMenuPlugin;
 use music_fade_in::MusicFadeInPlugin;
 use save::SavePlugin;
@@ -265,6 +265,7 @@ fn main() {
 enum Action {
     Left,
     Right,
+    LeftRight,
     RotateLeft,
     RotateRight,
     Jump,
@@ -430,6 +431,27 @@ fn spawn_player(
         (GamepadButtonType::South, Action::Jump),
         (GamepadButtonType::North, Action::ToggleZoom),
         (GamepadButtonType::Select, Action::Reset),
+    ]);
+
+    input_map.insert_multiple([
+        (
+            SingleAxis {
+                axis_type: AxisType::Gamepad(GamepadAxisType::LeftStickX),
+                negative_low: -0.3,
+                positive_low: f32::MAX,
+                value: None,
+            },
+            Action::Left,
+        ),
+        (
+            SingleAxis {
+                axis_type: AxisType::Gamepad(GamepadAxisType::LeftStickX),
+                negative_low: f32::MIN,
+                positive_low: 0.3,
+                value: None,
+            },
+            Action::Right,
+        ),
     ]);
 
     commands
