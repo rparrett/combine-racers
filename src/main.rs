@@ -33,6 +33,7 @@ use settings::{KeyboardLayout, KeyboardSetting, SfxSetting};
 use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
+const JUMP_IMPULSE: f32 = 175.;
 const BASE_SPEED_LIMIT: f32 = 20.;
 const BOOST_SPEED_LIMIT: f32 = 30.;
 const BASE_BOOST_TIMER: f32 = 2.;
@@ -433,6 +434,7 @@ fn spawn_player(
         (GamepadButtonType::Select, Action::Reset),
     ]);
 
+    // TODO replace with SingleAxis::negative_only when LWIM is updated
     input_map.insert_multiple([
         (
             SingleAxis {
@@ -570,7 +572,23 @@ fn player_movement(
             velocity.angvel += -Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
         if action_state.just_pressed(Action::Jump) && jump_wheels.0 >= 1 && !**jump_cooldown {
-            impulse.impulse = transform.rotation * Vec3::Y * 175.;
+            // We don't want a jump from an angled ramp to impart any impulse in the backwards
+            // direction, slowing the player down.
+            //
+            // So use only the y component of the current rotation for the jump impulse.
+            // But to enable "wall jumping," use the x component if we're close to vertical.
+            //
+            // An alternative to explore if this turns out to be janky would be to differentiate
+            // between "tracks" and "ramps" and use the old jumping behavior on non-ramps.
+
+            let up = transform.up();
+            let deg = up.angle_between(Vec3::NEG_X).to_degrees();
+
+            if (deg < 20. || deg > 340.) || (deg > 160. && deg < 200.) {
+                impulse.impulse = Vec3::new(up.x.signum() * JUMP_IMPULSE, 0., 0.);
+            } else {
+                impulse.impulse = Vec3::new(0., up.y.signum() * JUMP_IMPULSE, 0.);
+            }
 
             **jump_cooldown = true;
         }
