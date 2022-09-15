@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::Velocity;
 use bevy_ui_navigation::prelude::*;
 use interpolation::Ease;
 
-use crate::{Boost, GameAssets, GameState, Player, RaceTime, Trick};
+use crate::{player_dampening, Boost, GameAssets, GameState, Player, RaceTime, Trick};
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
@@ -15,7 +15,7 @@ impl Plugin for UiPlugin {
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
                     .with_system(race_time)
-                    .with_system(speedometer_text)
+                    .with_system(speedometer_text.after(player_dampening))
                     .with_system(trick_text),
             )
             .add_system_set(
@@ -262,7 +262,7 @@ fn speedometer_text(
 ) {
     for (velocity, boost) in query.iter() {
         for mut text in text_query.iter_mut() {
-            text.sections[0].value = format!("{:.0} kph", (velocity.linvel.length() * 3.5).floor());
+            text.sections[0].value = format!("{:.0} kph", (velocity.linvel.length() * 3.5).round());
             if boost.remaining > 0.0 {
                 text.sections[0].style.color = BOOSTED_TEXT
             } else {

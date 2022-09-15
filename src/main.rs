@@ -716,14 +716,16 @@ fn game_finished(mut events: EventReader<FinishedEvent>, mut state: ResMut<State
 
 fn player_dampening(
     time: Res<Time>,
-    mut query: Query<(&mut Velocity, &SpeedLimit, &WheelsOnGround), With<Player>>,
+    mut query: Query<(&mut Velocity, &SpeedLimit, &JumpWheelsOnGround), With<Player>>,
 ) {
     for (mut velocity, speed_limit, wheels) in query.iter_mut() {
         let elapsed = time.delta_seconds();
         velocity.angvel *= 0.1f32.powf(elapsed);
 
+        // clamp to speed limit
         if velocity.linvel.length() > **speed_limit && **wheels > 0 {
-            velocity.linvel *= 0.2f32.powf(elapsed);
+            velocity.linvel =
+                (velocity.linvel * 0.1f32.powf(elapsed)).clamp_length_min(**speed_limit);
         }
     }
 }
