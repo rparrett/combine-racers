@@ -34,6 +34,7 @@ use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
 const JUMP_IMPULSE: f32 = 175.;
+const DRIVE_FORCE: f32 = 400.;
 const BASE_SPEED_LIMIT: f32 = 20.;
 const BOOST_SPEED_LIMIT: f32 = 30.;
 const BASE_BOOST_TIMER: f32 = 2.;
@@ -471,6 +472,7 @@ fn spawn_player(
         .insert(Collider::cuboid(1., 1., 1.))
         .insert(ColliderDebugColor(Color::ORANGE))
         .insert(ExternalImpulse::default())
+        .insert(ExternalForce::default())
         .insert_bundle(InputManagerBundle::<Action> {
             input_map,
             ..default()
@@ -534,6 +536,7 @@ fn player_movement(
     mut query: Query<
         (
             &ActionState<Action>,
+            &mut ExternalForce,
             &mut ExternalImpulse,
             &mut Velocity,
             &WheelsOnGround,
@@ -551,6 +554,7 @@ fn player_movement(
 
     for (
         action_state,
+        mut force,
         mut impulse,
         mut velocity,
         wheels,
@@ -559,11 +563,13 @@ fn player_movement(
         transform,
     ) in query.iter_mut()
     {
-        if action_state.pressed(Action::Left) && **wheels >= 1 {
-            impulse.impulse = transform.rotation * -Vec3::X * 500. * time.delta_seconds();
+        force.force = Vec3::ZERO;
+
+        if action_state.pressed(Action::Left) && **jump_wheels >= 1 {
+            force.force = transform.rotation * -Vec3::X * DRIVE_FORCE;
         }
-        if action_state.pressed(Action::Right) && **wheels >= 1 {
-            impulse.impulse = transform.rotation * Vec3::X * 500. * time.delta_seconds();
+        if action_state.pressed(Action::Right) && **jump_wheels >= 1 {
+            force.force = transform.rotation * Vec3::X * DRIVE_FORCE;
         }
         if action_state.pressed(Action::RotateLeft) {
             velocity.angvel += Vec3::Z * ROT_SPEED * time.delta_seconds();
@@ -571,7 +577,7 @@ fn player_movement(
         if action_state.pressed(Action::RotateRight) {
             velocity.angvel += -Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
-        if action_state.just_pressed(Action::Jump) && jump_wheels.0 >= 1 && !**jump_cooldown {
+        if action_state.just_pressed(Action::Jump) && **jump_wheels >= 1 && !**jump_cooldown {
             // We don't want a jump from an angled ramp to impart any impulse in the backwards
             // direction, slowing the player down.
             //
