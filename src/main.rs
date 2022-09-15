@@ -588,7 +588,7 @@ fn player_movement(
             let up = transform.up();
             let deg = up.angle_between(Vec3::NEG_X).to_degrees();
 
-            if (deg < 20. || deg > 340.) || (deg > 160. && deg < 200.) {
+            if !(20.0..=340.0).contains(&deg) || (160.0..200.0).contains(&deg) {
                 impulse.impulse = Vec3::new(up.x.signum() * JUMP_IMPULSE, 0., 0.);
             } else {
                 impulse.impulse = Vec3::new(0., up.y.signum() * JUMP_IMPULSE, 0.);
