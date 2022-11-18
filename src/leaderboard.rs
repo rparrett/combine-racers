@@ -40,18 +40,18 @@ impl Plugin for LeaderboardPlugin {
     }
 }
 
-#[derive(Default, Deref, DerefMut)]
+#[derive(Resource, Default, Deref, DerefMut)]
 struct ScoreSaved(bool);
 
-#[derive(Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut)]
 struct RefreshTimer(Timer);
 impl Default for RefreshTimer {
     fn default() -> Self {
-        Self(Timer::from_seconds(3., false))
+        Self(Timer::from_seconds(3., TimerMode::Once))
     }
 }
 
-#[derive(Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut)]
 struct Refreshing(bool);
 impl Default for Refreshing {
     fn default() -> Self {
@@ -162,7 +162,7 @@ fn update_leaderboard(
                 };
 
             let row = commands
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         size: Size {
                             height: Val::Px(30.),
@@ -170,13 +170,12 @@ fn update_leaderboard(
                         },
                         ..default()
                     },
-                    color: Color::NONE.into(),
                     ..default()
                 })
                 .id();
 
             let rank_text = commands
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     text: Text::from_section(
                         rank,
                         TextStyle {
@@ -197,7 +196,7 @@ fn update_leaderboard(
                 .id();
 
             let name_text = commands
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     text: Text::from_section(
                         display_name,
                         TextStyle {
@@ -219,7 +218,7 @@ fn update_leaderboard(
                 .id();
 
             let score_text = commands
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     text: Text::from_section(
                         format!("{:.3}", display_score),
                         TextStyle {
@@ -263,42 +262,43 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
     };
 
     let root = commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    top: Val::Px(0.),
-                    left: Val::Px(0.),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        top: Val::Px(0.),
+                        left: Val::Px(0.),
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                    },
                     ..default()
-                },
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
                 },
                 ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(LeaderboardMarker)
+            LeaderboardMarker,
+        ))
         .id();
 
     let container = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 margin: UiRect::all(Val::Auto),
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            color: CONTAINER_BACKGROUND.into(),
+            background_color: CONTAINER_BACKGROUND.into(),
             ..default()
         })
         .id();
 
     let title = commands
-        .spawn_bundle(
+        .spawn(
             TextBundle::from_section("Leaderboard", title_text_style).with_style(Style {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
@@ -310,7 +310,7 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         .id();
 
     let loading = commands
-        .spawn_bundle(
+        .spawn((
             TextBundle::from_section(
                 "Loading...",
                 TextStyle {
@@ -326,41 +326,44 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
                 },
                 ..default()
             }),
-        )
-        .insert(LoadingText)
+            LoadingText,
+        ))
         .id();
 
     let scores_container = commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::ColumnReverse,
-                margin: UiRect {
-                    bottom: Val::Px(10.0),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    margin: UiRect {
+                        bottom: Val::Px(10.0),
+                        ..default()
+                    },
                     ..default()
                 },
                 ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(ScoresContainer)
+            ScoresContainer,
+        ))
         .id();
 
     let play_again = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style,
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
+        .spawn((
+            ButtonBundle {
+                style: button_style,
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            LeaderboardButton::PlayAgain,
+            PlayAgainButton,
+        ))
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
+            parent.spawn(TextBundle::from_section(
                 "Play Again",
                 button_text_style.clone(),
             ));
         })
-        .insert(Focusable::default())
-        .insert(LeaderboardButton::PlayAgain)
-        .insert(PlayAgainButton)
         .id();
 
     commands.entity(root).push_children(&[container]);

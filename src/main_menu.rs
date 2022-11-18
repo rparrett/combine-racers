@@ -45,7 +45,7 @@ struct SfxSettingButton;
 struct SfxSettingButtonText;
 #[derive(Component)]
 struct TipText;
-#[derive(Default, Deref, DerefMut)]
+#[derive(Resource, Default, Deref, DerefMut)]
 struct TipIndex(usize);
 impl TipIndex {
     fn next(&mut self) -> usize {
@@ -103,22 +103,24 @@ fn setup_menu(
     };
 
     let container = commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                margin: UiRect::all(Val::Auto),
-                flex_direction: FlexDirection::ColumnReverse,
-                align_items: AlignItems::Center,
-                padding: UiRect::all(Val::Px(20.)),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    margin: UiRect::all(Val::Auto),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::all(Val::Px(20.)),
+                    ..default()
+                },
+                background_color: CONTAINER_BACKGROUND.into(),
                 ..default()
             },
-            color: CONTAINER_BACKGROUND.into(),
-            ..default()
-        })
-        .insert(MainMenuMarker)
+            MainMenuMarker,
+        ))
         .id();
 
     let title = commands
-        .spawn_bundle(
+        .spawn(
             TextBundle::from_section("Combine-Racers", title_text_style).with_style(Style {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
@@ -130,21 +132,23 @@ fn setup_menu(
         .id();
 
     let play_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .insert(Focusable::default())
+        .spawn((
+            ButtonBundle {
+                style: button_style.clone(),
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Play,
+            PlayButton,
+        ))
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section("Play", button_text_style.clone()));
+            parent.spawn(TextBundle::from_section("Play", button_text_style.clone()));
         })
-        .insert(MenuButton::Play)
-        .insert(PlayButton)
         .id();
 
     let keyboard_settings_title = commands
-        .spawn_bundle(
+        .spawn(
             TextBundle::from_section("Keyboard", subtitle_text_style.clone()).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
@@ -153,26 +157,26 @@ fn setup_menu(
         .id();
 
     let qwerty_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
+        .spawn((
+            ButtonBundle {
+                style: button_style.clone(),
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Keyboard,
+            KeyboardSettingButton,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle::from_section(
-                    format!("{}", **keyboard),
-                    button_text_style.clone(),
-                ))
-                .insert(KeyboardSettingButtonText);
+            parent.spawn((
+                TextBundle::from_section(format!("{}", **keyboard), button_text_style.clone()),
+                KeyboardSettingButtonText,
+            ));
         })
-        .insert(Focusable::default())
-        .insert(MenuButton::Keyboard)
-        .insert(KeyboardSettingButton)
         .id();
 
     let audio_settings_title = commands
-        .spawn_bundle(
+        .spawn(
             TextBundle::from_section("Audio", subtitle_text_style).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
@@ -181,41 +185,41 @@ fn setup_menu(
         .id();
 
     let sfx_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
+        .spawn((
+            ButtonBundle {
+                style: button_style.clone(),
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Sfx,
+            SfxSettingButton,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle::from_section(
-                    format!("SFX {}%", **sfx),
-                    button_text_style.clone(),
-                ))
-                .insert(SfxSettingButtonText);
+            parent.spawn((
+                TextBundle::from_section(format!("SFX {}%", **sfx), button_text_style.clone()),
+                SfxSettingButtonText,
+            ));
         })
-        .insert(Focusable::default())
-        .insert(MenuButton::Sfx)
-        .insert(SfxSettingButton)
         .id();
 
     let music_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style,
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .insert(Focusable::default())
+        .spawn((
+            ButtonBundle {
+                style: button_style,
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Music,
+            MusicSettingButton,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle::from_section(
-                    format!("Music {}%", **music),
-                    button_text_style,
-                ))
-                .insert(MusicSettingButtonText);
+            parent.spawn((
+                TextBundle::from_section(format!("Music {}%", **music), button_text_style),
+                MusicSettingButtonText,
+            ));
         })
-        .insert(MenuButton::Music)
-        .insert(MusicSettingButton)
         .id();
 
     commands.entity(container).push_children(&[
@@ -229,33 +233,34 @@ fn setup_menu(
     ]);
 
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    bottom: Val::Px(40.),
-                    ..default()
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        bottom: Val::Px(40.),
+                        ..default()
+                    },
+                    margin: UiRect {
+                        left: Val::Auto,
+                        right: Val::Auto,
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Px(50.),
+                    },
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
                 },
-                margin: UiRect {
-                    left: Val::Auto,
-                    right: Val::Auto,
-                    ..default()
-                },
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Px(50.),
-                },
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..Default::default()
+                ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(MainMenuMarker)
+            MainMenuMarker,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     text: Text::from_section(
                         TIPS[tip_index.next()].to_owned(),
                         TextStyle {
@@ -265,8 +270,9 @@ fn setup_menu(
                         },
                     ),
                     ..Default::default()
-                })
-                .insert(TipText);
+                },
+                TipText,
+            ));
         });
 }
 

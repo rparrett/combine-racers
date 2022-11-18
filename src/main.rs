@@ -14,7 +14,7 @@ mod ui;
 use std::f32::consts::TAU;
 
 use bevy::{
-    audio::AudioSink, log::LogSettings, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
+    audio::AudioSink, log::LogPlugin, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -70,7 +70,7 @@ enum GameState {
     GameOver,
 }
 
-#[derive(AssetCollection)]
+#[derive(AssetCollection, Resource)]
 struct GameAssets {
     #[asset(path = "track_1.glb#Scene0")]
     track: Handle<Scene>,
@@ -79,7 +79,7 @@ struct GameAssets {
     #[asset(path = "NanumPenScript-Tweaked.ttf")]
     font: Handle<Font>,
 }
-#[derive(AssetCollection)]
+#[derive(AssetCollection, Resource)]
 struct AudioAssets {
     #[asset(path = "7th-race-aiteru-sawato.ogg")]
     music: Handle<AudioSource>,
@@ -91,6 +91,7 @@ struct AudioAssets {
     bonk: Handle<AudioSource>,
 }
 
+#[derive(Resource)]
 struct MusicController(Handle<AudioSink>);
 
 #[derive(Component)]
@@ -135,7 +136,7 @@ struct Track;
 struct FinishLine;
 #[derive(Component)]
 struct PlaceholderCombine;
-#[derive(Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut)]
 struct RaceTime(Stopwatch);
 impl Default for RaceTime {
     fn default() -> Self {
@@ -145,6 +146,7 @@ impl Default for RaceTime {
         Self(watch)
     }
 }
+#[derive(Resource)]
 struct Zoom {
     from: f32,
     target: f32,
@@ -152,7 +154,7 @@ struct Zoom {
 }
 impl Default for Zoom {
     fn default() -> Self {
-        let mut timer = Timer::from_seconds(0.7, false);
+        let mut timer = Timer::from_seconds(0.7, TimerMode::Once);
         timer.pause();
 
         Self {
@@ -177,14 +179,21 @@ const LAVA: f32 = -200.;
 fn main() {
     let mut app = App::new();
 
-    app.insert_resource(LogSettings {
-        filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
-        level: bevy::log::Level::DEBUG,
-    })
-    .insert_resource(WindowDescriptor {
-        fit_canvas_to_parent: true,
-        ..default()
-    })
+    app.add_plugins(
+        DefaultPlugins
+            .set(LogPlugin {
+                filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug"
+                    .into(),
+                level: bevy::log::Level::DEBUG,
+            })
+            .set(WindowPlugin {
+                window: WindowDescriptor {
+                    fit_canvas_to_parent: true,
+                    ..default()
+                },
+                ..default()
+            }),
+    )
     .insert_resource(PointLightShadowMap { size: 2048 })
     .insert_resource(ClearColor(Color::BLACK))
     .add_state(GameState::Loading)
@@ -195,7 +204,6 @@ fn main() {
             .with_collection::<GameAssets>()
             .with_collection::<AudioAssets>(),
     )
-    .add_plugins(DefaultPlugins)
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
     //.add_plugin(RapierDebugRenderPlugin::default())
     .insert_resource(InputMapping {
@@ -276,7 +284,7 @@ enum Action {
 }
 
 fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
-    commands.spawn_bundle(Camera3dBundle {
+    commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0., 0., zoom.target),
         ..Default::default()
     });
@@ -296,7 +304,7 @@ fn decorate_track(
     let mut decorated = false;
 
     for (mesh_entity, name, mesh_handle) in mesh_query.iter() {
-        match chop_name(&**name) {
+        match chop_name(name) {
             Some("Track") => {
                 decorated = true;
 
@@ -347,9 +355,9 @@ fn decorate_track(
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     commands
-        .spawn_bundle(SpatialBundle::default())
+        .spawn((SpatialBundle::default(), LightContainer))
         .with_children(|parent| {
-            parent.spawn_bundle(PointLightBundle {
+            parent.spawn(PointLightBundle {
                 point_light: PointLight {
                     shadows_enabled: true,
                     intensity: 500000.,
@@ -359,8 +367,7 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
                 transform: Transform::from_xyz(20., 20., 50.),
                 ..default()
             });
-        })
-        .insert(LightContainer);
+        });
 
     // ambient light
     commands.insert_resource(AmbientLight {
@@ -368,7 +375,7 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
         ..default()
     });
 
-    commands.spawn_bundle({
+    commands.spawn({
         SceneBundle {
             scene: assets.track.clone(),
             ..default()
@@ -378,16 +385,15 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     // this is super dumb, but spawning the combine stops the world in web
     // builds and ruins the race start countdown. so we'll spawn it here
     // instead when it's less disruptive.
-    commands
-        .spawn_bundle({
-            SceneBundle {
-                scene: assets.combine.clone(),
-                // the thing has to be "visible" for this to work, so hide it in the track.
-                transform: Transform::from_xyz(0., -4., 0.).with_scale(Vec3::splat(0.001)),
-                ..default()
-            }
-        })
-        .insert(PlaceholderCombine);
+    commands.spawn((
+        SceneBundle {
+            scene: assets.combine.clone(),
+            // the thing has to be "visible" for this to work, so hide it in the track.
+            transform: Transform::from_xyz(0., -4., 0.).with_scale(Vec3::splat(0.001)),
+            ..default()
+        },
+        PlaceholderCombine,
+    ));
 }
 
 fn spawn_player(
@@ -458,76 +464,84 @@ fn spawn_player(
     ]);
 
     commands
-        .spawn_bundle(SceneBundle {
-            scene: game_assets.combine.clone(),
-            ..default()
-        })
-        .insert(RigidBody::Dynamic)
-        .insert(axes)
-        .insert(Velocity::default())
-        .insert(WheelsOnGround::default())
-        .insert(JumpWheelsOnGround::default())
-        .insert(JumpCooldown::default())
-        .insert(BonkStatus::default())
-        .insert(Collider::cuboid(1., 1., 1.))
-        .insert(ColliderDebugColor(Color::ORANGE))
-        .insert(ExternalImpulse::default())
-        .insert(ExternalForce::default())
-        .insert_bundle(InputManagerBundle::<Action> {
-            input_map,
-            ..default()
-        })
-        .insert(ActiveEvents::COLLISION_EVENTS)
-        .insert(SpeedLimit(BASE_SPEED_LIMIT))
-        .insert(Boost::default())
-        .insert(TrickStatus::default())
-        .insert(LastTrick::default())
-        .insert(Player)
+        .spawn((
+            SceneBundle {
+                scene: game_assets.combine.clone(),
+                ..default()
+            },
+            WheelsOnGround::default(),
+            JumpWheelsOnGround::default(),
+            JumpCooldown::default(),
+            BonkStatus::default(),
+            SpeedLimit(BASE_SPEED_LIMIT),
+            Boost::default(),
+            TrickStatus::default(),
+            LastTrick::default(),
+            Player,
+        ))
+        .insert((
+            RigidBody::Dynamic,
+            axes,
+            Velocity::default(),
+            Collider::cuboid(1., 1., 1.),
+            ColliderDebugColor(Color::ORANGE),
+            ExternalImpulse::default(),
+            ExternalForce::default(),
+            InputManagerBundle::<Action> {
+                input_map,
+                ..default()
+            },
+            ActiveEvents::COLLISION_EVENTS,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TransformBundle {
+            parent.spawn((
+                TransformBundle {
                     local: Transform::from_translation(Vec3::new(-1.5, -0.5, 0.)),
                     ..default()
-                })
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Collider::ball(1.))
-                .insert(ColliderDebugColor(Color::ORANGE))
-                .insert(Friction::coefficient(0.1))
-                .insert(Restitution::coefficient(0.0))
-                .insert(Wheel);
-            parent
-                .spawn_bundle(TransformBundle {
+                },
+                ActiveEvents::COLLISION_EVENTS,
+                Collider::ball(1.),
+                ColliderDebugColor(Color::ORANGE),
+                Friction::coefficient(0.1),
+                Restitution::coefficient(0.0),
+                Wheel,
+            ));
+            parent.spawn((
+                TransformBundle {
                     local: Transform::from_translation(Vec3::new(1.5, -0.5, 0.)),
                     ..default()
-                })
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Collider::ball(1.))
-                .insert(ColliderDebugColor(Color::ORANGE))
-                .insert(Friction::coefficient(0.1))
-                .insert(Restitution::coefficient(0.0))
-                .insert(Wheel);
-            parent
-                .spawn_bundle(TransformBundle {
+                },
+                ActiveEvents::COLLISION_EVENTS,
+                Collider::ball(1.),
+                ColliderDebugColor(Color::ORANGE),
+                Friction::coefficient(0.1),
+                Restitution::coefficient(0.0),
+                Wheel,
+            ));
+            parent.spawn((
+                TransformBundle {
                     local: Transform::from_translation(Vec3::new(-1.5, -0.5, 0.)),
                     ..default()
-                })
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Collider::ball(1.1))
-                .insert(ColliderDebugColor(Color::ORANGE))
-                .insert(ColliderMassProperties::Density(0.0))
-                .insert(Sensor)
-                .insert(JumpWheel);
-            parent
-                .spawn_bundle(TransformBundle {
+                },
+                ActiveEvents::COLLISION_EVENTS,
+                Collider::ball(1.1),
+                ColliderDebugColor(Color::ORANGE),
+                ColliderMassProperties::Density(0.0),
+                Sensor,
+                JumpWheel,
+            ));
+            parent.spawn((
+                TransformBundle {
                     local: Transform::from_translation(Vec3::new(1.5, -0.5, 0.)),
                     ..default()
-                })
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Collider::ball(1.1))
-                .insert(ColliderDebugColor(Color::ORANGE))
-                .insert(ColliderMassProperties::Density(0.0))
-                .insert(Sensor)
-                .insert(JumpWheel);
+                },
+                ActiveEvents::COLLISION_EVENTS,
+                Collider::ball(1.1),
+                ColliderDebugColor(Color::ORANGE),
+                ColliderMassProperties::Density(0.0),
+                Sensor,
+                JumpWheel,
+            ));
         });
 }
 

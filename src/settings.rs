@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Deref, DerefMut, Serialize, Deserialize, Clone)]
+#[derive(Resource, Default, Debug, Deref, DerefMut, Serialize, Deserialize, Clone)]
 pub struct KeyboardSetting(KeyboardLayout);
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum KeyboardLayout {
@@ -22,7 +22,7 @@ impl std::fmt::Display for KeyboardLayout {
     }
 }
 
-#[derive(Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
 pub struct MusicSetting(u8);
 impl Default for MusicSetting {
     fn default() -> Self {
@@ -30,7 +30,7 @@ impl Default for MusicSetting {
     }
 }
 
-#[derive(Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
 pub struct SfxSetting(u8);
 impl Default for SfxSetting {
     fn default() -> Self {
@@ -38,5 +38,5 @@ impl Default for SfxSetting {
     }
 }
 
-#[derive(Default, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Default, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
 pub struct LeaderboardSetting(pub Option<bevy_jornet::Player>);

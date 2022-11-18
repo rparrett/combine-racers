@@ -21,14 +21,14 @@ struct CountdownTimer {
 impl Default for CountdownTimer {
     fn default() -> Self {
         Self {
-            countdown: Timer::from_seconds(3., false),
-            go: Timer::from_seconds(1., false),
+            countdown: Timer::from_seconds(3., TimerMode::Once),
+            go: Timer::from_seconds(1., TimerMode::Once),
         }
     }
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn().insert(CountdownTimer::default());
+    commands.spawn(CountdownTimer::default());
 }
 
 fn update(

@@ -23,11 +23,11 @@ const FADE_IN_TIME: f32 = 4.;
 const FADE_IN_SILENCE: f32 = 3.;
 const SILENCE_VOLUME: f32 = 0.01;
 
-#[derive(Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct MusicFadeTimer(Timer);
 impl Default for MusicFadeTimer {
     fn default() -> Self {
-        Self(Timer::from_seconds(10., false))
+        Self(Timer::from_seconds(10., TimerMode::Once))
     }
 }
 

@@ -15,8 +15,13 @@ impl Plugin for UiPlugin {
                 SystemSet::on_update(GameState::Playing)
                     .with_system(fade_trick_text)
                     .with_system(race_time)
-                    .with_system(speedometer_text.after(player_dampening))
                     .with_system(trick_text),
+            )
+            .add_system_set_to_stage(
+                CoreStage::PostUpdate,
+                SystemSet::on_update(GameState::Playing)
+                    .with_system(speedometer_text)
+                    .after(player_dampening),
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
@@ -43,45 +48,46 @@ pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 pub struct GameUiMarker;
 #[derive(Component)]
 pub struct TrickTextMarker;
-#[derive(Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct TrickTextTimer(Timer);
 impl Default for TrickTextTimer {
     fn default() -> Self {
-        Self(Timer::from_seconds(2., false))
+        Self(Timer::from_seconds(2., TimerMode::Once))
     }
 }
 #[derive(Component)]
 pub struct RaceTimeText;
 #[derive(Component)]
 pub struct SpeedometerText;
-#[derive(Default, Deref, DerefMut)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct TrickText(String);
 
 fn setup(mut commands: Commands, assets: Res<GameAssets>) {
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    right: Val::Px(5.),
-                    top: Val::Px(5.),
-                    ..default()
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        right: Val::Px(5.),
+                        top: Val::Px(5.),
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Px(120.),
+                        height: Val::Px(60.),
+                    },
+                    align_items: AlignItems::FlexEnd,
+                    justify_content: JustifyContent::FlexStart,
+                    ..Default::default()
                 },
-                size: Size {
-                    width: Val::Px(120.),
-                    height: Val::Px(60.),
-                },
-                align_items: AlignItems::FlexEnd,
-                justify_content: JustifyContent::FlexStart,
-                ..Default::default()
+                ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(GameUiMarker)
+            GameUiMarker,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     text: Text::from_section(
                         "0.000",
                         TextStyle {
@@ -91,12 +97,13 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                         },
                     ),
                     ..Default::default()
-                })
-                .insert(RaceTimeText);
+                },
+                RaceTimeText,
+            ));
         });
 
-    commands
-        .spawn_bundle(TextBundle {
+    commands.spawn((
+        TextBundle {
             style: Style {
                 margin: UiRect {
                     left: Val::Auto,
@@ -117,39 +124,41 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             )
             .with_alignment(TextAlignment::CENTER),
             ..Default::default()
-        })
-        .insert(GameUiMarker)
-        .insert(TrickTextMarker);
+        },
+        GameUiMarker,
+        TrickTextMarker,
+    ));
 
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    right: Val::Px(5.),
-                    bottom: Val::Px(5.),
-                    ..default()
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        right: Val::Px(5.),
+                        bottom: Val::Px(5.),
+                        ..default()
+                    },
+                    margin: UiRect {
+                        left: Val::Auto,
+                        right: Val::Auto,
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Px(60.),
+                    },
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
                 },
-                margin: UiRect {
-                    left: Val::Auto,
-                    right: Val::Auto,
-                    ..default()
-                },
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Px(60.),
-                },
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..Default::default()
+                ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(GameUiMarker)
+            GameUiMarker,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     text: Text::from_section(
                         "0%",
                         TextStyle {
@@ -159,8 +168,9 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                         },
                     ),
                     ..Default::default()
-                })
-                .insert(SpeedometerText);
+                },
+                SpeedometerText,
+            ));
         });
 }
 
@@ -274,7 +284,7 @@ fn speedometer_text(
 
 pub fn buttons(
     mut interaction_query: Query<
-        (&Interaction, &Focusable, &mut UiColor),
+        (&Interaction, &Focusable, &mut BackgroundColor),
         (Or<(Changed<Interaction>, Changed<Focusable>)>, With<Button>),
     >,
 ) {

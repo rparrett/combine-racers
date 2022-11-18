@@ -49,42 +49,43 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
     };
 
     let root = commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    top: Val::Px(0.),
-                    left: Val::Px(0.),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        top: Val::Px(0.),
+                        left: Val::Px(0.),
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                    },
                     ..default()
-                },
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
                 },
                 ..default()
             },
-            color: Color::NONE.into(),
-            ..default()
-        })
-        .insert(GameOverMarker)
+            GameOverMarker,
+        ))
         .id();
 
     let container = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 margin: UiRect::all(Val::Auto),
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            color: CONTAINER_BACKGROUND.into(),
+            background_color: CONTAINER_BACKGROUND.into(),
             ..default()
         })
         .id();
 
     let title = commands
-        .spawn_bundle(
+        .spawn(
             TextBundle::from_section("Game Over", title_text_style).with_style(Style {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
@@ -96,20 +97,22 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
         .id();
 
     let play_again = commands
-        .spawn_bundle(ButtonBundle {
-            style: button_style,
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
+        .spawn((
+            ButtonBundle {
+                style: button_style,
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            GameOverButton::PlayAgain,
+            PlayAgainButton,
+        ))
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
+            parent.spawn(TextBundle::from_section(
                 "Play Again",
                 button_text_style.clone(),
             ));
         })
-        .insert(Focusable::default())
-        .insert(GameOverButton::PlayAgain)
-        .insert(PlayAgainButton)
         .id();
 
     commands.entity(root).push_children(&[container]);
