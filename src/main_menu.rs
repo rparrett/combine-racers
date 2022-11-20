@@ -1,8 +1,8 @@
 use bevy::{audio::AudioSink, prelude::*};
-use bevy_ui_navigation::{prelude::*, systems::InputMapping};
+use bevy_ui_navigation::prelude::*;
 
 use crate::{
-    settings::{KeyboardLayout, KeyboardSetting, MusicSetting, SfxSetting},
+    settings::{MusicSetting, SfxSetting},
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON},
     AudioAssets, GameAssets, GameState, MusicController,
 };
@@ -16,7 +16,6 @@ impl Plugin for MainMenuPlugin {
                 SystemSet::on_update(GameState::MainMenu)
                     .with_system(sfx_volume)
                     .with_system(music_volume)
-                    .with_system(keyboard_setting)
                     .with_system(button_actions)
                     .with_system(buttons.after(NavRequestSystem)),
             )
@@ -29,11 +28,6 @@ struct MainMenuMarker;
 
 #[derive(Component)]
 struct PlayButton;
-#[derive(Component)]
-struct KeyboardSettingButton;
-
-#[derive(Component)]
-struct KeyboardSettingButtonText;
 #[derive(Component)]
 struct MusicSettingButton;
 #[derive(Component)]
@@ -74,7 +68,6 @@ fn setup_menu(
     assets: Res<GameAssets>,
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
-    keyboard: Res<KeyboardSetting>,
     mut tip_index: ResMut<TipIndex>,
 ) {
     info!("setup_menu");
@@ -147,34 +140,6 @@ fn setup_menu(
         })
         .id();
 
-    let keyboard_settings_title = commands
-        .spawn(
-            TextBundle::from_section("Keyboard", subtitle_text_style.clone()).with_style(Style {
-                margin: UiRect::all(Val::Px(10.0)),
-                ..default()
-            }),
-        )
-        .id();
-
-    let qwerty_button = commands
-        .spawn((
-            ButtonBundle {
-                style: button_style.clone(),
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
-            Focusable::default(),
-            MenuButton::Keyboard,
-            KeyboardSettingButton,
-        ))
-        .with_children(|parent| {
-            parent.spawn((
-                TextBundle::from_section(format!("{}", **keyboard), button_text_style.clone()),
-                KeyboardSettingButtonText,
-            ));
-        })
-        .id();
-
     let audio_settings_title = commands
         .spawn(
             TextBundle::from_section("Audio", subtitle_text_style).with_style(Style {
@@ -225,8 +190,6 @@ fn setup_menu(
     commands.entity(container).push_children(&[
         title,
         play_button,
-        keyboard_settings_title,
-        qwerty_button,
         audio_settings_title,
         sfx_button,
         music_button,
@@ -279,7 +242,6 @@ fn setup_menu(
 #[derive(Component)]
 enum MenuButton {
     Play,
-    Keyboard,
     Sfx,
     Music,
 }
@@ -289,11 +251,8 @@ fn button_actions(
     buttons: Query<&MenuButton>,
     mut events: EventReader<NavEvent>,
     mut state: ResMut<State<GameState>>,
-    mut keyboard_setting: ResMut<KeyboardSetting>,
-
     mut music_setting: ResMut<MusicSetting>,
     mut text_queries: ParamSet<(
-        Query<&mut Text, With<KeyboardSettingButtonText>>,
         Query<&mut Text, With<SfxSettingButtonText>>,
         Query<&mut Text, With<MusicSettingButtonText>>,
     )>,
@@ -308,16 +267,6 @@ fn button_actions(
             MenuButton::Play => {
                 state.set(GameState::Playing).unwrap();
             }
-            MenuButton::Keyboard => {
-                **keyboard_setting = match **keyboard_setting {
-                    KeyboardLayout::Azerty => KeyboardLayout::Qwerty,
-                    KeyboardLayout::Qwerty => KeyboardLayout::Azerty,
-                };
-
-                for mut text in text_queries.p0().iter_mut() {
-                    text.sections[0].value = format!("{}", **keyboard_setting);
-                }
-            }
             MenuButton::Sfx => {
                 if **sfx_setting == 0 {
                     **sfx_setting = 100;
@@ -325,7 +274,7 @@ fn button_actions(
                     **sfx_setting -= 10;
                 }
 
-                for mut text in text_queries.p1().iter_mut() {
+                for mut text in text_queries.p0().iter_mut() {
                     text.sections[0].value = format!("SFX {}%", **sfx_setting);
                 }
             }
@@ -336,7 +285,7 @@ fn button_actions(
                     **music_setting -= 10;
                 }
 
-                for mut text in text_queries.p2().iter_mut() {
+                for mut text in text_queries.p1().iter_mut() {
                     text.sections[0].value = format!("Music {}%", **music_setting);
                 }
             }
@@ -369,21 +318,6 @@ fn music_volume(
     if let Some(controller) = controller {
         if let Some(sink) = audio_sinks.get(&controller.0) {
             sink.set_volume(**music_setting as f32 / 100.)
-        }
-    }
-}
-
-fn keyboard_setting(setting: Res<KeyboardSetting>, mut mapping: ResMut<InputMapping>) {
-    if setting.is_changed() {
-        match **setting {
-            KeyboardLayout::Qwerty => {
-                mapping.key_up = KeyCode::W;
-                mapping.key_down = KeyCode::S;
-            }
-            KeyboardLayout::Azerty => {
-                mapping.key_up = KeyCode::Z;
-                mapping.key_down = KeyCode::S;
-            }
         }
     }
 }

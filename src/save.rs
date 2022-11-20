@@ -1,4 +1,4 @@
-use crate::settings::{KeyboardSetting, LeaderboardSetting, MusicSetting, SfxSetting};
+use crate::settings::{LeaderboardSetting, MusicSetting, SfxSetting};
 
 use bevy::prelude::*;
 use ron::ser::PrettyConfig;
@@ -21,14 +21,12 @@ impl Plugin for SavePlugin {
 struct SaveFile {
     sfx: SfxSetting,
     music: MusicSetting,
-    keyboard: KeyboardSetting,
     leaderboard: LeaderboardSetting,
 }
 
 pub fn load_system(mut commands: Commands) {
     commands.insert_resource(SfxSetting::default());
     commands.insert_resource(MusicSetting::default());
-    commands.insert_resource(KeyboardSetting::default());
     commands.insert_resource(LeaderboardSetting::default());
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -50,7 +48,6 @@ pub fn load_system(mut commands: Commands) {
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
-        commands.insert_resource(save_file.keyboard);
         commands.insert_resource(save_file.leaderboard);
     }
     #[cfg(target_arch = "wasm32")]
@@ -82,7 +79,6 @@ pub fn load_system(mut commands: Commands) {
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
-        commands.insert_resource(save_file.keyboard);
         commands.insert_resource(save_file.leaderboard);
     }
 }
@@ -90,15 +86,13 @@ pub fn load_system(mut commands: Commands) {
 pub fn save_system(
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
-    keyboard: Res<KeyboardSetting>,
     leaderboard: Res<LeaderboardSetting>,
 ) {
     let sfx_changed = sfx.is_changed() && !sfx.is_added();
     let music_changed = music.is_changed() && !music.is_added();
-    let keyboard_changed = keyboard.is_changed() && !keyboard.is_added();
     let leaderboard_changed = leaderboard.is_changed() && !leaderboard.is_added();
 
-    if !sfx_changed && !music_changed && !keyboard_changed && !leaderboard_changed {
+    if !sfx_changed && !music_changed && !leaderboard_changed {
         return;
     }
 
@@ -107,7 +101,6 @@ pub fn save_system(
     let save_file = SaveFile {
         sfx: sfx.clone(),
         music: music.clone(),
-        keyboard: keyboard.clone(),
         leaderboard: leaderboard.clone(),
     };
 

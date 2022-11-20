@@ -29,7 +29,7 @@ use leafwing_input_manager::{axislike::AxisType, prelude::*};
 use main_menu::MainMenuPlugin;
 use music_fade_in::MusicFadeInPlugin;
 use save::SavePlugin;
-use settings::{KeyboardLayout, KeyboardSetting, SfxSetting};
+use settings::SfxSetting;
 use ui::{TrickText, UiPlugin};
 
 const ROT_SPEED: f32 = 8.;
@@ -392,40 +392,23 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
     ));
 }
 
-fn spawn_player(
-    mut commands: Commands,
-    keyboard: Res<KeyboardSetting>,
-    game_assets: Res<GameAssets>,
-) {
+fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
     let mut axes = LockedAxes::empty();
     axes.insert(LockedAxes::ROTATION_LOCKED_X);
     axes.insert(LockedAxes::ROTATION_LOCKED_Y);
     axes.insert(LockedAxes::TRANSLATION_LOCKED_Z);
 
-    let mut input_map = match **keyboard {
-        KeyboardLayout::Qwerty => InputMap::new([
-            (KeyCode::Left, Action::Left),
-            (KeyCode::A, Action::Left),
-            (KeyCode::Right, Action::Right),
-            (KeyCode::D, Action::Right),
-            (KeyCode::Q, Action::RotateLeft),
-            (KeyCode::E, Action::RotateRight),
-            (KeyCode::Space, Action::Jump),
-            (KeyCode::Z, Action::ToggleZoom),
-            (KeyCode::Escape, Action::Reset),
-        ]),
-        KeyboardLayout::Azerty => InputMap::new([
-            (KeyCode::Left, Action::Left),
-            (KeyCode::Q, Action::Left),
-            (KeyCode::Right, Action::Right),
-            (KeyCode::D, Action::Right),
-            (KeyCode::A, Action::RotateLeft),
-            (KeyCode::E, Action::RotateRight),
-            (KeyCode::Space, Action::Jump),
-            (KeyCode::W, Action::ToggleZoom),
-            (KeyCode::Escape, Action::Reset),
-        ]),
-    };
+    let mut input_map = InputMap::new([
+        (KeyCode::Left, Action::Left),
+        (KeyCode::A, Action::Left),
+        (KeyCode::Right, Action::Right),
+        (KeyCode::D, Action::Right),
+        (KeyCode::Q, Action::RotateLeft),
+        (KeyCode::E, Action::RotateRight),
+        (KeyCode::Space, Action::Jump),
+        (KeyCode::Z, Action::ToggleZoom),
+        (KeyCode::Escape, Action::Reset),
+    ]);
 
     input_map.insert_multiple([
         (GamepadButtonType::DPadLeft, Action::Left),
