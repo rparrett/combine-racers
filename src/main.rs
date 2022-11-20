@@ -194,7 +194,6 @@ fn main() {
                 ..default()
             }),
     )
-    .insert_resource(PointLightShadowMap { size: 2048 })
     .insert_resource(ClearColor(Color::BLACK))
     .add_state(GameState::Loading)
     .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
@@ -354,24 +353,21 @@ fn decorate_track(
 }
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
-    commands
-        .spawn((SpatialBundle::default(), LightContainer))
-        .with_children(|parent| {
-            parent.spawn(PointLightBundle {
-                point_light: PointLight {
-                    shadows_enabled: true,
-                    intensity: 500000.,
-                    range: 200.,
-                    ..default()
-                },
-                transform: Transform::from_xyz(20., 20., 50.),
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                shadows_enabled: true,
                 ..default()
-            });
-        });
+            },
+            transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
+            ..default()
+        },
+        LightContainer,
+    ));
 
     // ambient light
     commands.insert_resource(AmbientLight {
-        brightness: 0.2,
+        brightness: 0.15,
         ..default()
     });
 
