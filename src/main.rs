@@ -437,24 +437,13 @@ fn spawn_player(
         (GamepadButtonType::Select, Action::Reset),
     ]);
 
-    // TODO replace with SingleAxis::negative_only when LWIM is updated
     input_map.insert_multiple([
         (
-            SingleAxis {
-                axis_type: AxisType::Gamepad(GamepadAxisType::LeftStickX),
-                negative_low: -0.3,
-                positive_low: f32::MAX,
-                value: None,
-            },
+            SingleAxis::negative_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), -0.3),
             Action::Left,
         ),
         (
-            SingleAxis {
-                axis_type: AxisType::Gamepad(GamepadAxisType::LeftStickX),
-                negative_low: f32::MIN,
-                positive_low: 0.3,
-                value: None,
-            },
+            SingleAxis::positive_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), 0.3),
             Action::Right,
         ),
     ]);
