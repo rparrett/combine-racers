@@ -13,9 +13,7 @@ mod ui;
 
 use std::f32::consts::TAU;
 
-use bevy::{
-    audio::AudioSink, log::LogPlugin, pbr::PointLightShadowMap, prelude::*, time::Stopwatch,
-};
+use bevy::{audio::AudioSink, log::LogPlugin, prelude::*, time::Stopwatch};
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::WorldInspectorPlugin;
