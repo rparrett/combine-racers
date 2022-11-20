@@ -12,8 +12,7 @@ inspector = ["bevy-inspector-egui"]
 [dependencies]
 bevy = { version = "0.9", features = ["wav"] }
 bevy_rapier3d = "0.19"
-#bevy_asset_loader = "0.14"
-bevy_asset_loader = { git = "https://github.com/NiklasEi/bevy_asset_loader.git", branch = "bevy_main", features = ["2d", "standard_dynamic_assets"] }
+bevy_asset_loader = "0.14"
 bevy-inspector-egui = { version = "0.14", optional = true }
 leafwing-input-manager = "0.7"
 #bevy_jornet = { path = "../jornet/bevy-jornet" }
