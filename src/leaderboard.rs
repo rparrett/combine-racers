@@ -1,9 +1,7 @@
 use std::cmp::Ordering;
 
 use bevy::prelude::*;
-use bevy_jornet::{
-    CreatePlayerEvent, JornetPlugin, Leaderboard, RefreshLeaderboardEvent, SendScoreEvent,
-};
+use bevy_jornet::{JornetEvent, JornetPlugin, Leaderboard};
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
@@ -22,20 +20,20 @@ impl Plugin for LeaderboardPlugin {
                 .init_resource::<RefreshTimer>()
                 .add_plugin(JornetPlugin::with_leaderboard(id, key))
                 .add_system(save_leaderboard_setting)
-                .add_system_set(SystemSet::on_enter(GameState::Loading).with_system(create_player))
-                .add_system_set(
-                    SystemSet::on_enter(GameState::Leaderboard)
-                        .with_system(save_score)
-                        .with_system(spawn_leaderboard),
+                .add_system(create_player.in_schedule(OnEnter(GameState::Loading)))
+                .add_systems(
+                    (save_score, spawn_leaderboard).in_schedule(OnEnter(GameState::Leaderboard)),
                 )
-                .add_system_set(
-                    SystemSet::on_update(GameState::Leaderboard)
-                        .with_system(initiate_refresh)
-                        .with_system(update_leaderboard)
-                        .with_system(button_actions)
-                        .with_system(buttons.after(NavRequestSystem)),
+                .add_systems(
+                    (
+                        initiate_refresh,
+                        update_leaderboard,
+                        button_actions,
+                        buttons.after(NavRequestSystem),
+                    )
+                        .in_set(OnUpdate(GameState::Leaderboard)),
                 )
-                .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup));
+                .add_system(cleanup.in_schedule(OnExit(GameState::Leaderboard)));
         }
     }
 }
@@ -85,12 +83,12 @@ pub fn get_leaderboard_credentials() -> Option<(&'static str, &'static str)> {
 
 fn save_leaderboard_setting(
     mut leaderboard_setting: ResMut<LeaderboardSetting>,
-    mut events: EventReader<CreatePlayerEvent>,
+    mut events: EventReader<JornetEvent>,
     leaderboard: Res<Leaderboard>,
 ) {
     if !events
         .iter()
-        .any(|e| matches!(*e, CreatePlayerEvent::Success))
+        .any(|e| matches!(*e, JornetEvent::CreatePlayerSuccess))
     {
         return;
     }
@@ -100,8 +98,11 @@ fn save_leaderboard_setting(
     }
 }
 
-fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<SendScoreEvent>) {
-    if !events.iter().any(|e| matches!(*e, SendScoreEvent::Success)) {
+fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<JornetEvent>) {
+    if !events
+        .iter()
+        .any(|e| matches!(*e, JornetEvent::SendScoreSuccess))
+    {
         return;
     }
 
@@ -117,11 +118,11 @@ fn update_leaderboard(
     container_query: Query<Entity, With<ScoresContainer>>,
     loading_text_query: Query<Entity, With<LoadingText>>,
     assets: Res<GameAssets>,
-    mut events: EventReader<RefreshLeaderboardEvent>,
+    mut events: EventReader<JornetEvent>,
 ) {
     if !events
         .iter()
-        .any(|e| matches!(*e, RefreshLeaderboardEvent::Success))
+        .any(|e| matches!(*e, JornetEvent::RefreshLeaderboardSuccess))
     {
         return;
     }
@@ -395,12 +396,12 @@ fn save_score(race_time: Res<RaceTime>, leaderboard: Res<Leaderboard>) {
 fn button_actions(
     buttons: Query<&LeaderboardButton>,
     mut events: EventReader<NavEvent>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     for button in events.nav_iter().activated_in_query(&buttons) {
         match button {
             LeaderboardButton::PlayAgain => {
-                state.set(GameState::MainMenu).unwrap();
+                next_state.set(GameState::MainMenu);
             }
         }
     }

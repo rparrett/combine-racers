@@ -6,9 +6,9 @@ use crate::{settings::SfxSetting, ui::TrickTextMarker, AudioAssets, GameState, R
 pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup))
-            .add_system_set(SystemSet::on_update(GameState::Playing).with_system(update))
-            .add_system_set(SystemSet::on_exit(GameState::Playing).with_system(cleanup));
+        app.add_system(setup.in_schedule(OnEnter(GameState::Playing)))
+            .add_system(update.in_set(OnUpdate(GameState::Playing)))
+            .add_system(cleanup.in_schedule(OnExit(GameState::Playing)));
     }
 }
 

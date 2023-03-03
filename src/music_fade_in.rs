@@ -13,9 +13,9 @@ pub struct MusicFadeInPlugin;
 impl Plugin for MusicFadeInPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MusicFadeTimer>()
-            .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(start_music))
-            .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(fade_music))
-            .add_system_set(SystemSet::on_update(GameState::Playing).with_system(fade_music));
+            .add_system(start_music.in_schedule(OnEnter(GameState::Decorating)))
+            .add_system(fade_music.in_set(OnUpdate(GameState::MainMenu)))
+            .add_system(fade_music.in_set(OnUpdate(GameState::Playing)));
     }
 }
 

@@ -11,15 +11,17 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TipIndex>()
-            .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_menu))
-            .add_system_set(
-                SystemSet::on_update(GameState::MainMenu)
-                    .with_system(sfx_volume)
-                    .with_system(music_volume)
-                    .with_system(button_actions)
-                    .with_system(buttons.after(NavRequestSystem)),
+            .add_system(setup_menu.in_schedule(OnEnter(GameState::MainMenu)))
+            .add_systems(
+                (
+                    sfx_volume,
+                    music_volume,
+                    button_actions,
+                    buttons.after(NavRequestSystem),
+                )
+                    .in_set(OnUpdate(GameState::MainMenu)),
             )
-            .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(cleanup_menu));
+            .add_system(cleanup_menu.in_schedule(OnExit(GameState::MainMenu)));
     }
 }
 
@@ -250,7 +252,7 @@ enum MenuButton {
 fn button_actions(
     buttons: Query<&MenuButton>,
     mut events: EventReader<NavEvent>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
     mut music_setting: ResMut<MusicSetting>,
     mut text_queries: ParamSet<(
         Query<&mut Text, With<SfxSettingButtonText>>,
@@ -265,7 +267,7 @@ fn button_actions(
     for button in events.nav_iter().activated_in_query(&buttons) {
         match button {
             MenuButton::Play => {
-                state.set(GameState::Playing).unwrap();
+                next_state.set(GameState::Playing);
             }
             MenuButton::Sfx => {
                 if **sfx_setting == 0 {

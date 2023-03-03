@@ -8,25 +8,22 @@ license = "MIT OR Apache-2.0"
 
 [features]
 inspector = ["bevy-inspector-egui"]
+debugdump = ["bevy_mod_debugdump"]
 
 [dependencies]
-bevy = { version = "0.9", features = ["wav"] }
-bevy_rapier3d = "0.19"
-bevy_asset_loader = "0.14"
-bevy-inspector-egui = { version = "0.14", optional = true }
-leafwing-input-manager = "0.7"
-#bevy_jornet = { path = "../jornet/bevy-jornet" }
-bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "events" }
-bevy-ui-navigation = "0.22.0"
+bevy = { version = "0.10", features = ["wav"] }
+bevy_rapier3d = "0.21"
+bevy_asset_loader = "0.15"
+bevy-inspector-egui = { version = "0.18", optional = true }
+leafwing-input-manager = "0.9"
+bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "event-0.10" }
+bevy-ui-navigation = "0.24.0"
+bevy_mod_debugdump = { version = "0.7", optional = true }
 
 interpolation = "0.2"
 serde = "*"
 ron = "0.8"
 rand = "0.8"
-
-# Fix flashing ClearColor on Mac/Chrome
-# [patch.crates-io]
-# wgpu = { git = "https://github.com/rparrett/wgpu/", branch = "014-clear-fix" }
 
 # Dependencies for WASM only.
 [target.'cfg(target_arch = "wasm32")'.dependencies]

@@ -13,10 +13,12 @@ mod ui;
 
 use std::f32::consts::TAU;
 
-use bevy::{audio::AudioSink, log::LogPlugin, prelude::*, time::Stopwatch};
+use bevy::{
+    audio::AudioSink, log::LogPlugin, pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch,
+};
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
-use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use countdown::CountdownPlugin;
@@ -50,22 +52,32 @@ struct Player;
 #[derive(Component)]
 struct Wheel;
 /// A special wheel, slightly larger than the normal wheel. When at
-/// least one JumpWheel is touching the track, the player is allowed
+/// least one `JumpWheel` is touching the track, the player is allowed
 /// to jump.
 ///
 /// This works around some frustrating jank where the player might be
-/// "mid-air" for 5 frames at a time while travelling on flat ground.
+/// "mid-air" for 5 frames at a time while traveling on flat ground.
 #[derive(Component)]
 struct JumpWheel;
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash, States, Default)]
 enum GameState {
+    #[default]
     Loading,
     Decorating,
     MainMenu,
     Playing,
     Leaderboard,
     GameOver,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+#[system_set(base)]
+pub struct AfterPhysics;
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+pub enum GameSet {
+    Movement,
 }
 
 #[derive(AssetCollection, Resource)]
@@ -177,94 +189,128 @@ const LAVA: f32 = -200.;
 fn main() {
     let mut app = App::new();
 
-    app.add_plugins(
-        DefaultPlugins
-            .set(LogPlugin {
-                filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug"
-                    .into(),
-                level: bevy::log::Level::DEBUG,
-            })
-            .set(WindowPlugin {
-                window: WindowDescriptor {
-                    fit_canvas_to_parent: true,
-                    ..default()
-                },
+    let default_plugins = DefaultPlugins
+        .set(LogPlugin {
+            filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
+            level: bevy::log::Level::DEBUG,
+        })
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                fit_canvas_to_parent: true,
                 ..default()
             }),
-    )
-    .insert_resource(ClearColor(Color::BLACK))
-    .add_state(GameState::Loading)
-    .add_state_to_stage(CoreStage::PostUpdate, GameState::Loading)
-    .add_loading_state(
-        LoadingState::new(GameState::Loading)
-            .continue_to_state(GameState::Decorating)
-            .with_collection::<GameAssets>()
-            .with_collection::<AudioAssets>(),
-    )
-    .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-    //.add_plugin(RapierDebugRenderPlugin::default())
-    .insert_resource(InputMapping {
-        keyboard_navigation: true,
-        ..default()
-    })
-    .add_plugin(InputManagerPlugin::<Action>::default())
-    .add_plugins(DefaultNavigationPlugins)
-    .add_plugin(UiPlugin)
-    .add_plugin(MainMenuPlugin)
-    .add_plugin(CountdownPlugin)
-    .add_plugin(LeaderboardPlugin)
-    .add_plugin(GameOverPlugin)
-    .add_plugin(SavePlugin)
-    .add_plugin(MusicFadeInPlugin);
+            ..default()
+        })
+        .build();
+
+    #[cfg(feature = "debugdump")]
+    let default_plugins = default_plugins.disable::<bevy::log::LogPlugin>();
+
+    app.add_plugins(default_plugins);
+
+    app.insert_resource(ClearColor(Color::BLACK))
+        .add_state::<GameState>()
+        .add_loading_state(
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::Decorating),
+        )
+        .add_collection_to_loading_state::<_, GameAssets>(GameState::Loading)
+        .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+        //.add_plugin(RapierDebugRenderPlugin::default())
+        .insert_resource(InputMapping {
+            keyboard_navigation: true,
+            ..default()
+        })
+        .add_plugin(InputManagerPlugin::<Action>::default())
+        .add_plugins(DefaultNavigationPlugins)
+        .add_plugin(UiPlugin)
+        .add_plugin(MainMenuPlugin)
+        .add_plugin(CountdownPlugin)
+        .add_plugin(LeaderboardPlugin)
+        .add_plugin(GameOverPlugin)
+        .add_plugin(SavePlugin)
+        .add_plugin(MusicFadeInPlugin);
 
     #[cfg(feature = "inspector")]
     app.add_plugin(WorldInspectorPlugin::new());
 
-    app.init_resource::<RaceTime>()
-        .init_resource::<Zoom>()
-        .add_event::<FinishedEvent>()
-        .add_system_set(SystemSet::on_exit(GameState::Loading).with_system(spawn_camera))
-        .add_system_set(SystemSet::on_enter(GameState::Decorating).with_system(setup_game))
-        .add_system_set(SystemSet::on_update(GameState::Decorating).with_system(decorate_track))
-        .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(spawn_player))
-        .add_system_set_to_stage(
-            CoreStage::PostUpdate,
-            SystemSet::on_update(GameState::Playing)
-                .with_system(camera_follow)
-                .with_system(collision_events)
-                .with_system(player_dampening)
-                .with_system(track_trick.after(player_dampening))
-                .with_system(zoom.after(camera_follow)),
+    app.init_resource::<RaceTime>().init_resource::<Zoom>();
+
+    app.add_event::<FinishedEvent>();
+
+    app.configure_set(
+        AfterPhysics
+            .after(PhysicsSet::Writeback)
+            .before(CoreSet::PostUpdate),
+    );
+
+    app.add_system(spawn_camera.in_schedule(OnExit(GameState::Loading)))
+        .add_system(setup_game.in_schedule(OnEnter(GameState::Decorating)))
+        .add_system(decorate_track.in_set(OnUpdate(GameState::Decorating)))
+        .add_system(spawn_player.in_schedule(OnEnter(GameState::Playing)))
+        .add_systems(
+            (
+                camera_follow.run_if(in_state(GameState::Playing)),
+                collision_events.run_if(in_state(GameState::Playing)),
+                player_dampening
+                    .in_set(GameSet::Movement)
+                    .run_if(in_state(GameState::Playing)),
+                track_trick
+                    .after(GameSet::Movement)
+                    .run_if(in_state(GameState::Playing)),
+                zoom.run_if(in_state(GameState::Playing)),
+            )
+                .in_base_set(AfterPhysics),
         )
         // Do a limited subset of things in the background while
         // we're showing the leaderboard or game over screen
-        .add_system_set_to_stage(
-            CoreStage::PostUpdate,
-            SystemSet::on_update(GameState::Leaderboard)
-                .with_system(player_dampening)
-                .with_system(camera_follow),
+        .add_systems(
+            (
+                player_dampening
+                    .in_set(GameSet::Movement)
+                    .run_if(in_state(GameState::Leaderboard)),
+                camera_follow.run_if(in_state(GameState::Leaderboard)),
+            )
+                .in_base_set(AfterPhysics),
         )
-        .add_system_set_to_stage(
-            CoreStage::PostUpdate,
-            SystemSet::on_update(GameState::GameOver)
-                .with_system(player_dampening)
-                .with_system(camera_follow),
+        .add_systems(
+            (
+                player_dampening
+                    .in_set(GameSet::Movement)
+                    .run_if(in_state(GameState::GameOver)),
+                camera_follow.run_if(in_state(GameState::GameOver)),
+            )
+                .in_base_set(AfterPhysics),
         )
-        .add_system_set(
-            SystemSet::on_update(GameState::Playing)
-                .with_system(player_movement)
-                .with_system(boost)
-                .with_system(race_time)
-                .with_system(game_finished)
-                .with_system(start_zoom)
-                .with_system(reset_action)
-                .with_system(bonk_sound)
-                .with_system(death),
+        .add_systems(
+            (
+                player_movement,
+                boost,
+                race_time,
+                game_finished,
+                start_zoom,
+                reset_action,
+                bonk_sound,
+                death,
+            )
+                .in_set(OnUpdate(GameState::Playing)),
         )
-        .add_system_set(SystemSet::on_exit(GameState::Playing))
-        .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(reset))
-        .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(reset))
-        .run();
+        .add_system(reset.in_schedule(OnExit(GameState::Leaderboard)))
+        .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
+
+    #[cfg(feature = "debugdump")]
+    {
+        let settings = bevy_mod_debugdump::schedule_graph::Settings {
+            ambiguity_enable: false,
+            ambiguity_enable_on_world: false,
+            ..Default::default()
+        };
+
+        let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, CoreSchedule::Main, &settings);
+        println!("{dot}");
+    }
+
+    app.run();
 }
 
 // This is the list of "things in the game I want to be able to do based on input"
@@ -292,7 +338,7 @@ fn decorate_track(
     mesh_query: Query<(Entity, &Name, &Handle<Mesh>), Without<Collider>>,
     meshes: Res<Assets<Mesh>>,
     mut visibility_query: Query<&mut Visibility>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     fn chop_name(name: &str) -> Option<&str> {
         name.rsplitn(2, '.').last()
@@ -336,7 +382,7 @@ fn decorate_track(
                     .insert(FinishLine);
 
                 if let Ok(mut visibility) = visibility_query.get_mut(mesh_entity) {
-                    visibility.is_visible = false;
+                    *visibility = Visibility::Hidden
                 }
 
                 info!("Added finish line collider to {:?}", mesh_entity);
@@ -346,7 +392,7 @@ fn decorate_track(
     }
 
     if decorated {
-        state.set(GameState::MainMenu).unwrap();
+        next_state.set(GameState::MainMenu);
     }
 }
 
@@ -357,6 +403,11 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
                 shadows_enabled: true,
                 ..default()
             },
+            cascade_shadow_config: CascadeShadowConfigBuilder {
+                maximum_distance: 100.,
+                ..default()
+            }
+            .into(),
             transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
             ..default()
         },
@@ -376,9 +427,9 @@ fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
         }
     });
 
-    // this is super dumb, but spawning the combine stops the world in web
-    // builds and ruins the race start countdown. so we'll spawn it here
-    // instead when it's less disruptive.
+    // this is super dumb, but spawning the combine causes new render pipelines
+    // to be built which stops the world in web builds and ruins the race start
+    // countdown. so we'll spawn it here instead when it's less disruptive.
     commands.spawn((
         SceneBundle {
             scene: assets.combine.clone(),
@@ -688,12 +739,15 @@ fn collision_events(
     }
 }
 
-fn game_finished(mut events: EventReader<FinishedEvent>, mut state: ResMut<State<GameState>>) {
+fn game_finished(
+    mut events: EventReader<FinishedEvent>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
     if events.iter().count() > 0 {
         if get_leaderboard_credentials().is_some() {
-            state.set(GameState::Leaderboard).unwrap();
+            next_state.set(GameState::Leaderboard);
         } else {
-            state.set(GameState::GameOver).unwrap();
+            next_state.set(GameState::GameOver);
         }
     }
 }
@@ -722,8 +776,7 @@ fn track_trick(
             &mut LastTrick,
             &Velocity,
             &Transform,
-            &WheelsOnGround,
-            ChangeTrackers<WheelsOnGround>,
+            Ref<WheelsOnGround>,
             &BonkStatus,
             &mut Boost,
         ),
@@ -734,16 +787,8 @@ fn track_trick(
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
-    for (
-        mut trick_status,
-        mut last_trick,
-        velocity,
-        transform,
-        wheels,
-        wheels_changed,
-        bonk,
-        mut boost,
-    ) in query.iter_mut()
+    for (mut trick_status, mut last_trick, velocity, transform, wheels, bonk, mut boost) in
+        query.iter_mut()
     {
         if **bonk {
             trick_status.reset();
@@ -752,7 +797,7 @@ fn track_trick(
         if **wheels == 0 {
             // if we just left the ground, make a note of our starting
             // position so we can determine if we went forward or backward
-            if wheels_changed.is_changed() {
+            if wheels.is_changed() {
                 trick_status.start_x = transform.translation.x;
                 trick_status.hang_time = 0.;
             }
@@ -770,7 +815,7 @@ fn track_trick(
                 trick_status.front_flips += 1;
                 trick_status.rotation += TAU;
             }
-        } else if wheels_changed.is_changed() {
+        } else if wheels.is_changed() {
             // if a wheel just hit the ground
 
             // round up the remainder of the rotation generously, because
@@ -892,26 +937,26 @@ fn bonk_sound(
 
 fn death(
     query: Query<&Transform, With<Player>>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
     mut race_time: ResMut<RaceTime>,
 ) {
     for transform in &query {
         if transform.translation.y < LAVA {
             race_time.pause();
-            state.set(GameState::GameOver).unwrap();
+            next_state.set(GameState::GameOver);
         }
     }
 }
 
 fn reset_action(
     query: Query<&ActionState<Action>, With<Player>>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
     mut race_time: ResMut<RaceTime>,
 ) {
     let action_state = query.single();
     if action_state.just_pressed(Action::Reset) {
         race_time.pause();
-        state.set(GameState::GameOver).unwrap();
+        next_state.set(GameState::GameOver);
     }
 }
 

@@ -3,33 +3,28 @@ use bevy_rapier3d::prelude::Velocity;
 use bevy_ui_navigation::prelude::*;
 use interpolation::Ease;
 
-use crate::{player_dampening, Boost, GameAssets, GameState, Player, RaceTime, Trick};
+use crate::{AfterPhysics, Boost, GameAssets, GameSet, GameState, Player, RaceTime, Trick};
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TrickText>()
             .init_resource::<TrickTextTimer>()
-            .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(setup))
-            .add_system_set(
-                SystemSet::on_update(GameState::Playing)
-                    .with_system(fade_trick_text)
-                    .with_system(race_time)
-                    .with_system(trick_text),
+            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)))
+            .add_systems(
+                (fade_trick_text, race_time, trick_text).in_set(OnUpdate(GameState::Playing)),
             )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                SystemSet::on_update(GameState::Playing)
-                    .with_system(speedometer_text)
-                    .after(player_dampening),
+            .add_system(
+                speedometer_text
+                    .after(GameSet::Movement)
+                    .run_if(in_state(GameState::Playing))
+                    .in_base_set(AfterPhysics),
             )
-            .add_system_set(
-                SystemSet::on_update(GameState::Leaderboard).with_system(fade_trick_text),
-            )
+            .add_system(fade_trick_text.in_set(OnUpdate(GameState::Leaderboard)))
             // Keep displaying game UI until the player is done mentally processing their failure
             // and finally presses that "play again" button.
-            .add_system_set(SystemSet::on_exit(GameState::Leaderboard).with_system(cleanup))
-            .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(cleanup));
+            .add_system(cleanup.in_schedule(OnExit(GameState::Leaderboard)))
+            .add_system(cleanup.in_schedule(OnExit(GameState::GameOver)));
     }
 }
 
@@ -122,7 +117,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                     color: Color::NONE,
                 },
             )
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
             ..Default::default()
         },
         GameUiMarker,

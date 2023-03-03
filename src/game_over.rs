@@ -9,13 +9,12 @@ use crate::{
 pub struct GameOverPlugin;
 impl Plugin for GameOverPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::GameOver).with_system(spawn))
-            .add_system_set(
-                SystemSet::on_update(GameState::GameOver)
-                    .with_system(button_actions)
-                    .with_system(buttons.after(NavRequestSystem)),
+        app.add_system(spawn.in_schedule(OnEnter(GameState::GameOver)))
+            .add_systems(
+                (button_actions, buttons.after(NavRequestSystem))
+                    .in_set(OnUpdate(GameState::GameOver)),
             )
-            .add_system_set(SystemSet::on_exit(GameState::GameOver).with_system(cleanup));
+            .add_system(cleanup.in_schedule(OnExit(GameState::GameOver)));
     }
 }
 
@@ -125,7 +124,7 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
 fn button_actions(
     buttons: Query<&GameOverButton>,
     mut events: EventReader<NavEvent>,
-    mut state: ResMut<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     // Note: we have a closure here because the `buttons` query is mutable.
     // for immutable queries, you can use `.activated_in_query` which returns an iterator.
@@ -134,7 +133,7 @@ fn button_actions(
     for button in events.nav_iter().activated_in_query(&buttons) {
         match button {
             GameOverButton::PlayAgain => {
-                state.set(GameState::MainMenu).unwrap();
+                next_state.set(GameState::MainMenu);
             }
         }
     }

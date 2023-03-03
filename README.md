@@ -36,7 +36,7 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 ## Track workflow
 
 - Create path on grid in inkscape (save this)
-- Jone all separate paths into one path
+- Join all separate paths into one path
 - Stroke path
 - Convert stroke to path (save this separately)
 - Import stroke path into blender
