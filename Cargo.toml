@@ -19,6 +19,7 @@ leafwing-input-manager = "0.9"
 bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "event-0.10" }
 bevy-ui-navigation = "0.24.0"
 bevy_mod_debugdump = { version = "0.7", optional = true }
+bevy_tiling_background = { git = "https://github.com/BraymatterOrg/bevy_tiling_background.git" }
 
 interpolation = "0.2"
 serde = "*"
