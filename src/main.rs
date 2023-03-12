@@ -14,12 +14,16 @@ mod ui;
 use std::f32::consts::TAU;
 
 use bevy::{
-    audio::AudioSink, log::LogPlugin, pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch,
+    audio::AudioSink, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
+    pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
+use bevy_tiling_background::{
+    BackgroundImageBundle, BackgroundMaterial, SetImageRepeatingExt, TilingBackgroundPlugin,
+};
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
@@ -86,6 +90,8 @@ struct GameAssets {
     track: Handle<Scene>,
     #[asset(path = "combine.glb#Scene0")]
     combine: Handle<Scene>,
+    #[asset(path = "bg.png")]
+    background: Handle<Image>,
     #[asset(path = "NanumPenScript-Tweaked.ttf")]
     font: Handle<Font>,
 }
@@ -221,6 +227,7 @@ fn main() {
             keyboard_navigation: true,
             ..default()
         })
+        .add_plugin(TilingBackgroundPlugin::<BackgroundMaterial>::default())
         .add_plugin(InputManagerPlugin::<Action>::default())
         .add_plugins(DefaultNavigationPlugins)
         .add_plugin(UiPlugin)
@@ -327,7 +334,17 @@ enum Action {
 }
 
 fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
+    commands.spawn((Camera2dBundle::default(), UiCameraConfig { show_ui: false }));
+
     commands.spawn(Camera3dBundle {
+        camera: Camera {
+            order: 1,
+            ..default()
+        },
+        camera_3d: Camera3d {
+            clear_color: ClearColorConfig::None,
+            ..default()
+        },
         transform: Transform::from_xyz(0., 0., zoom.target),
         ..Default::default()
     });
@@ -396,7 +413,19 @@ fn decorate_track(
     }
 }
 
-fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
+fn setup_game(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    mut materials: ResMut<Assets<BackgroundMaterial>>,
+) {
+    commands.set_image_repeating(assets.background.clone());
+
+    commands.spawn(
+        BackgroundImageBundle::from_image(assets.background.clone(), materials.as_mut())
+            .with_movement_scale(1.0)
+            .at_z_layer(0.1),
+    );
+
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             shadows_enabled: true,
