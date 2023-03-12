@@ -397,22 +397,19 @@ fn decorate_track(
 }
 
 fn setup_game(mut commands: Commands, assets: Res<GameAssets>) {
-    commands.spawn((
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                shadows_enabled: true,
-                ..default()
-            },
-            cascade_shadow_config: CascadeShadowConfigBuilder {
-                maximum_distance: 100.,
-                ..default()
-            }
-            .into(),
-            transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            shadows_enabled: true,
             ..default()
         },
-        LightContainer,
-    ));
+        cascade_shadow_config: CascadeShadowConfigBuilder {
+            maximum_distance: 100.,
+            ..default()
+        }
+        .into(),
+        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
+        ..default()
+    });
 
     // ambient light
     commands.insert_resource(AmbientLight {
@@ -632,18 +629,12 @@ fn player_movement(
 
 fn camera_follow(
     player: Query<&Transform, With<Player>>,
-    mut camera: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
-    mut light: Query<&mut Transform, (With<LightContainer>, Without<Camera3d>, Without<Player>)>,
+    mut camera: Query<&mut Transform, (With<Camera>, Without<Player>)>,
 ) {
     for player_transform in player.iter() {
         for mut camera_transform in camera.iter_mut() {
             camera_transform.translation.x = player_transform.translation.x;
             camera_transform.translation.y = player_transform.translation.y;
-        }
-
-        for mut light_transform in light.iter_mut() {
-            light_transform.translation.x = player_transform.translation.x;
-            light_transform.translation.y = player_transform.translation.y;
         }
     }
 }
