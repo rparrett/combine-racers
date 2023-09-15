@@ -11,15 +11,16 @@ inspector = ["bevy-inspector-egui"]
 debugdump = ["bevy_mod_debugdump"]
 
 [dependencies]
-bevy = { version = "0.10", features = ["wav"] }
-bevy_rapier3d = "0.21"
-bevy_asset_loader = "0.15"
-bevy-inspector-egui = { version = "0.18", optional = true }
-leafwing-input-manager = "0.9"
-bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "event-0.10" }
-bevy-ui-navigation = "0.24.0"
-bevy_mod_debugdump = { version = "0.7", optional = true }
-bevy_tiling_background = { git = "https://github.com/BraymatterOrg/bevy_tiling_background.git" }
+bevy = { version = "0.11", features = ["wav"] }
+bevy_rapier3d = "0.22"
+bevy_asset_loader = "0.17"
+bevy-inspector-egui = { version = "0.19", optional = true }
+leafwing-input-manager = "0.10"
+bevy_jornet = { git = "https://github.com/rparrett/jornet", branch = "event-0.11" }
+bevy-ui-navigation = "0.31.0"
+bevy_mod_debugdump = { version = "0.8", optional = true }
+#bevy_tiling_background = { git = "https://github.com/BraymatterOrg/bevy_tiling_background.git", rev="85f0f82" }
+bevy_tiling_background = { path = "../bevy_tiling_background" }
 
 interpolation = "0.2"
 serde = "*"

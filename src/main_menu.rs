@@ -1,4 +1,7 @@
-use bevy::{audio::AudioSink, prelude::*};
+use bevy::{
+    audio::{AudioSink, Volume},
+    prelude::*,
+};
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
@@ -11,17 +14,18 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TipIndex>()
-            .add_system(setup_menu.in_schedule(OnEnter(GameState::MainMenu)))
+            .add_systems(OnEnter(GameState::MainMenu), setup_menu)
             .add_systems(
+                Update,
                 (
                     sfx_volume,
                     music_volume,
                     button_actions,
                     buttons.after(NavRequestSystem),
                 )
-                    .in_set(OnUpdate(GameState::MainMenu)),
+                    .run_if(in_state(GameState::MainMenu)),
             )
-            .add_system(cleanup_menu.in_schedule(OnExit(GameState::MainMenu)));
+            .add_systems(OnExit(GameState::MainMenu), cleanup_menu);
     }
 }
 
@@ -75,7 +79,8 @@ fn setup_menu(
     info!("setup_menu");
 
     let button_style = Style {
-        size: Size::new(Val::Px(250.0), Val::Px(45.0)),
+        width: Val::Px(250.0),
+        height: Val::Px(45.0),
         margin: UiRect::all(Val::Px(5.0)),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
@@ -202,19 +207,14 @@ fn setup_menu(
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        bottom: Val::Px(40.),
-                        ..default()
-                    },
+                    bottom: Val::Px(40.),
                     margin: UiRect {
                         left: Val::Auto,
                         right: Val::Auto,
                         ..default()
                     },
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Px(50.),
-                    },
+                    width: Val::Percent(100.),
+                    height: Val::Px(50.),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..Default::default()
@@ -295,32 +295,30 @@ fn button_actions(
     }
 }
 
-fn sfx_volume(sfx_setting: Res<SfxSetting>, audio: Res<Audio>, game_audio: Res<AudioAssets>) {
+fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: Res<AudioAssets>) {
     // Do not run when SfxSetting is first added by SavePlugin
     if !sfx_setting.is_changed() || sfx_setting.is_added() {
         return;
     }
 
-    audio.play_with_settings(
-        game_audio.trick.clone(),
-        PlaybackSettings::ONCE.with_volume(**sfx_setting as f32 / 100.),
-    );
+    commands.spawn(AudioBundle {
+        source: game_audio.trick.clone(),
+        settings: PlaybackSettings::DESPAWN
+            .with_volume(Volume::new_relative(**sfx_setting as f32 / 100.)),
+    });
 }
 
 fn music_volume(
     music_setting: Res<MusicSetting>,
-    audio_sinks: Res<Assets<AudioSink>>,
-    controller: Option<Res<MusicController>>,
+    music_query: Query<&AudioSink, With<MusicController>>,
 ) {
     // Do not run when MusicSetting is first added by SavePlugin
     if !music_setting.is_changed() || music_setting.is_added() {
         return;
     }
 
-    if let Some(controller) = controller {
-        if let Some(sink) = audio_sinks.get(&controller.0) {
-            sink.set_volume(**music_setting as f32 / 100.)
-        }
+    for sink in &music_query {
+        sink.set_volume(**music_setting as f32 / 100.)
     }
 }
 

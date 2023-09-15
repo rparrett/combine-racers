@@ -10,21 +10,26 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TrickText>()
             .init_resource::<TrickTextTimer>()
-            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)))
+            .add_systems(OnExit(GameState::MainMenu), setup)
             .add_systems(
-                (fade_trick_text, race_time, trick_text).in_set(OnUpdate(GameState::Playing)),
+                Update,
+                (fade_trick_text, race_time, trick_text).run_if(in_state(GameState::Playing)),
             )
-            .add_system(
+            .add_systems(
+                PostUpdate,
                 speedometer_text
                     .after(GameSet::Movement)
                     .run_if(in_state(GameState::Playing))
-                    .in_base_set(AfterPhysics),
+                    .in_set(AfterPhysics),
             )
-            .add_system(fade_trick_text.in_set(OnUpdate(GameState::Leaderboard)))
+            .add_systems(
+                Update,
+                fade_trick_text.run_if(in_state(GameState::Leaderboard)),
+            )
             // Keep displaying game UI until the player is done mentally processing their failure
             // and finally presses that "play again" button.
-            .add_system(cleanup.in_schedule(OnExit(GameState::Leaderboard)))
-            .add_system(cleanup.in_schedule(OnExit(GameState::GameOver)));
+            .add_systems(OnExit(GameState::Leaderboard), cleanup)
+            .add_systems(OnExit(GameState::GameOver), cleanup);
     }
 }
 
@@ -63,15 +68,10 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        right: Val::Px(5.),
-                        top: Val::Px(5.),
-                        ..default()
-                    },
-                    size: Size {
-                        width: Val::Px(120.),
-                        height: Val::Px(60.),
-                    },
+                    right: Val::Px(5.),
+                    top: Val::Px(5.),
+                    width: Val::Px(120.),
+                    height: Val::Px(60.),
                     align_items: AlignItems::FlexEnd,
                     justify_content: JustifyContent::FlexStart,
                     ..Default::default()
@@ -129,20 +129,15 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        right: Val::Px(5.),
-                        bottom: Val::Px(5.),
-                        ..default()
-                    },
+                    right: Val::Px(5.),
+                    bottom: Val::Px(5.),
                     margin: UiRect {
                         left: Val::Auto,
                         right: Val::Auto,
                         ..default()
                     },
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Px(60.),
-                    },
+                    width: Val::Percent(100.),
+                    height: Val::Px(60.),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..Default::default()
@@ -285,7 +280,7 @@ pub fn buttons(
 ) {
     for (interaction, focusable, mut color) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {

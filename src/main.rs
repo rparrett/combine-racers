@@ -14,8 +14,9 @@ mod ui;
 use std::f32::consts::TAU;
 
 use bevy::{
-    audio::AudioSink, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
-    pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch,
+    audio::Volume, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
+    pbr::CascadeShadowConfigBuilder, prelude::*, reflect::TypePath, time::Stopwatch,
+    transform::TransformSystem,
 };
 use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
@@ -76,7 +77,6 @@ enum GameState {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-#[system_set(base)]
 pub struct AfterPhysics;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -107,8 +107,8 @@ struct AudioAssets {
     bonk: Handle<AudioSource>,
 }
 
-#[derive(Resource)]
-struct MusicController(Handle<AudioSink>);
+#[derive(Component)]
+struct MusicController;
 
 #[derive(Component)]
 struct LightContainer;
@@ -188,6 +188,7 @@ impl Default for JumpCooldown {
     }
 }
 
+#[derive(Event)]
 struct FinishedEvent;
 
 const LAVA: f32 = -200.;
@@ -221,22 +222,22 @@ fn main() {
         )
         .add_collection_to_loading_state::<_, GameAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         //.add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(InputMapping {
             keyboard_navigation: true,
             ..default()
         })
-        .add_plugin(TilingBackgroundPlugin::<BackgroundMaterial>::default())
-        .add_plugin(InputManagerPlugin::<Action>::default())
+        .add_plugins(TilingBackgroundPlugin::<BackgroundMaterial>::default())
+        .add_plugins(InputManagerPlugin::<Action>::default())
         .add_plugins(DefaultNavigationPlugins)
-        .add_plugin(UiPlugin)
-        .add_plugin(MainMenuPlugin)
-        .add_plugin(CountdownPlugin)
-        .add_plugin(LeaderboardPlugin)
-        .add_plugin(GameOverPlugin)
-        .add_plugin(SavePlugin)
-        .add_plugin(MusicFadeInPlugin);
+        .add_plugins(UiPlugin)
+        .add_plugins(MainMenuPlugin)
+        .add_plugins(CountdownPlugin)
+        .add_plugins(LeaderboardPlugin)
+        .add_plugins(GameOverPlugin)
+        .add_plugins(SavePlugin)
+        .add_plugins(MusicFadeInPlugin);
 
     #[cfg(feature = "inspector")]
     app.add_plugin(WorldInspectorPlugin::new());
@@ -245,17 +246,23 @@ fn main() {
 
     app.add_event::<FinishedEvent>();
 
+    // TODO we may need apply_deferred somewhere in here
     app.configure_set(
+        PostUpdate,
         AfterPhysics
             .after(PhysicsSet::Writeback)
-            .before(CoreSet::PostUpdate),
+            .before(TransformSystem::TransformPropagate),
     );
 
-    app.add_system(spawn_camera.in_schedule(OnExit(GameState::Loading)))
-        .add_system(setup_game.in_schedule(OnEnter(GameState::Decorating)))
-        .add_system(decorate_track.in_set(OnUpdate(GameState::Decorating)))
-        .add_system(spawn_player.in_schedule(OnEnter(GameState::Playing)))
+    app.add_systems(OnExit(GameState::Loading), spawn_camera)
+        .add_systems(OnEnter(GameState::Decorating), setup_game)
         .add_systems(
+            Update,
+            decorate_track.run_if(in_state(GameState::Decorating)),
+        )
+        .add_systems(OnEnter(GameState::Playing), spawn_player)
+        .add_systems(
+            PostUpdate,
             (
                 camera_follow.run_if(in_state(GameState::Playing)),
                 collision_events.run_if(in_state(GameState::Playing)),
@@ -267,29 +274,32 @@ fn main() {
                     .run_if(in_state(GameState::Playing)),
                 zoom.run_if(in_state(GameState::Playing)),
             )
-                .in_base_set(AfterPhysics),
+                .in_set(AfterPhysics),
         )
         // Do a limited subset of things in the background while
         // we're showing the leaderboard or game over screen
         .add_systems(
+            PostUpdate,
             (
                 player_dampening
                     .in_set(GameSet::Movement)
                     .run_if(in_state(GameState::Leaderboard)),
                 camera_follow.run_if(in_state(GameState::Leaderboard)),
             )
-                .in_base_set(AfterPhysics),
+                .in_set(AfterPhysics),
         )
         .add_systems(
+            PostUpdate,
             (
                 player_dampening
                     .in_set(GameSet::Movement)
                     .run_if(in_state(GameState::GameOver)),
                 camera_follow.run_if(in_state(GameState::GameOver)),
             )
-                .in_base_set(AfterPhysics),
+                .in_set(AfterPhysics),
         )
         .add_systems(
+            Update,
             (
                 player_movement,
                 boost,
@@ -300,10 +310,10 @@ fn main() {
                 bonk_sound,
                 death,
             )
-                .in_set(OnUpdate(GameState::Playing)),
+                .run_if(in_state(GameState::Playing)),
         )
-        .add_system(reset.in_schedule(OnExit(GameState::Leaderboard)))
-        .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
+        .add_systems(OnExit(GameState::Leaderboard), reset)
+        .add_systems(OnExit(GameState::GameOver), reset);
 
     #[cfg(feature = "debugdump")]
     {
@@ -321,7 +331,7 @@ fn main() {
 }
 
 // This is the list of "things in the game I want to be able to do based on input"
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, TypePath)]
 enum Action {
     Left,
     Right,
@@ -334,13 +344,19 @@ enum Action {
 }
 
 fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
-    commands.spawn((Camera2dBundle::default(), UiCameraConfig { show_ui: false }));
-
-    commands.spawn(Camera3dBundle {
-        camera: Camera {
-            order: 1,
+    // For the background
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                order: -1,
+                ..default()
+            },
             ..default()
         },
+        UiCameraConfig { show_ui: false },
+    ));
+
+    commands.spawn(Camera3dBundle {
         camera_3d: Camera3d {
             clear_color: ClearColorConfig::None,
             ..default()
@@ -428,6 +444,7 @@ fn setup_game(
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
+            illuminance: 32_000.0,
             shadows_enabled: true,
             ..default()
         },
@@ -789,6 +806,7 @@ fn player_dampening(
 }
 
 fn track_trick(
+    mut commands: Commands,
     time: Res<Time>,
     mut query: Query<
         (
@@ -803,7 +821,6 @@ fn track_trick(
         With<Player>,
     >,
     mut trick_text: ResMut<TrickText>,
-    audio: Res<Audio>,
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -870,10 +887,11 @@ fn track_trick(
 
                 **last_trick = trick.clone();
 
-                audio.play_with_settings(
-                    game_audio.trick.clone(),
-                    PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-                );
+                commands.spawn(AudioBundle {
+                    source: game_audio.trick.clone(),
+                    settings: PlaybackSettings::DESPAWN
+                        .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+                });
             }
 
             trick_status.reset();
@@ -940,17 +958,18 @@ fn zoom(
 }
 
 fn bonk_sound(
-    audio: Res<Audio>,
+    mut commands: Commands,
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
     bonk_query: Query<&BonkStatus, (Changed<BonkStatus>, With<Player>)>,
 ) {
     for bonk in &bonk_query {
         if **bonk {
-            audio.play_with_settings(
-                game_audio.bonk.clone(),
-                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-            );
+            commands.spawn(AudioBundle {
+                source: game_audio.bonk.clone(),
+                settings: PlaybackSettings::ONCE
+                    .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+            });
         }
     }
 }

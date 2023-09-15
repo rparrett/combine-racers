@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{audio::Volume, prelude::*};
 use interpolation::Ease;
 
 use crate::{settings::SfxSetting, ui::TrickTextMarker, AudioAssets, GameState, RaceTime};
@@ -6,9 +6,9 @@ use crate::{settings::SfxSetting, ui::TrickTextMarker, AudioAssets, GameState, R
 pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup.in_schedule(OnEnter(GameState::Playing)))
-            .add_system(update.in_set(OnUpdate(GameState::Playing)))
-            .add_system(cleanup.in_schedule(OnExit(GameState::Playing)));
+        app.add_systems(OnEnter(GameState::Playing), setup)
+            .add_systems(Update, update.run_if(in_state(GameState::Playing)))
+            .add_systems(OnExit(GameState::Playing), cleanup);
     }
 }
 
@@ -32,21 +32,22 @@ fn setup(mut commands: Commands) {
 }
 
 fn update(
+    mut commands: Commands,
     time: Res<Time>,
     mut query: Query<&mut CountdownTimer>,
     mut text_query: Query<&mut Text, With<TrickTextMarker>>,
     mut race_time: ResMut<RaceTime>,
-    audio: Res<Audio>,
     game_audio: Res<AudioAssets>,
     audio_setting: Res<SfxSetting>,
 ) {
     for mut timer in query.iter_mut() {
         if !timer.countdown.finished() {
             if timer.countdown.elapsed_secs() == 0.0 {
-                audio.play_with_settings(
-                    game_audio.three_two_one.clone(),
-                    PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-                );
+                commands.spawn(AudioBundle {
+                    source: game_audio.three_two_one.clone(),
+                    settings: PlaybackSettings::DESPAWN
+                        .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+                });
             }
 
             timer.countdown.tick(time.delta());

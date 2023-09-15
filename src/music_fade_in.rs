@@ -1,4 +1,7 @@
-use bevy::{audio::AudioSink, prelude::*};
+use bevy::{
+    audio::{AudioSink, Volume},
+    prelude::*,
+};
 use interpolation::{Ease, Lerp};
 
 use crate::{settings::MusicSetting, AudioAssets, GameState, MusicController};
@@ -13,9 +16,9 @@ pub struct MusicFadeInPlugin;
 impl Plugin for MusicFadeInPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MusicFadeTimer>()
-            .add_system(start_music.in_schedule(OnEnter(GameState::Decorating)))
-            .add_system(fade_music.in_set(OnUpdate(GameState::MainMenu)))
-            .add_system(fade_music.in_set(OnUpdate(GameState::Playing)));
+            .add_systems(OnEnter(GameState::Decorating), start_music)
+            .add_systems(Update, fade_music.run_if(in_state(GameState::MainMenu)))
+            .add_systems(Update, fade_music.run_if(in_state(GameState::Playing)));
     }
 }
 
@@ -31,23 +34,19 @@ impl Default for MusicFadeTimer {
     }
 }
 
-fn start_music(
-    mut commands: Commands,
-    audio_assets: Res<AudioAssets>,
-    audio_sinks: Res<Assets<AudioSink>>,
-    audio: Res<Audio>,
-) {
-    let handle = audio_sinks.get_handle(audio.play_with_settings(
-        audio_assets.music.clone(),
-        PlaybackSettings::LOOP.with_volume(0.),
+fn start_music(mut commands: Commands, audio_assets: Res<AudioAssets>) {
+    commands.spawn((
+        AudioBundle {
+            source: audio_assets.music.clone(),
+            settings: PlaybackSettings::LOOP.with_volume(Volume::new_relative(0.)),
+        },
+        MusicController,
     ));
-    commands.insert_resource(MusicController(handle));
 }
 
 fn fade_music(
     music_setting: Res<MusicSetting>,
-    audio_sinks: Res<Assets<AudioSink>>,
-    controller: Option<Res<MusicController>>,
+    music_query: Query<&AudioSink, With<MusicController>>,
     mut timer: ResMut<MusicFadeTimer>,
     time: Res<Time>,
 ) {
@@ -58,22 +57,20 @@ fn fade_music(
         return;
     }
 
-    if let Some(controller) = controller {
-        if let Some(sink) = audio_sinks.get(&controller.0) {
-            timer.tick(time.delta());
-            if !timer.finished() {
-                let timer_pct_silence = FADE_IN_SILENCE / FADE_IN_TIME;
-                let timer_pct_fade = 1. - timer_pct_silence;
+    for sink in &music_query {
+        timer.tick(time.delta());
+        if !timer.finished() {
+            let timer_pct_silence = FADE_IN_SILENCE / FADE_IN_TIME;
+            let timer_pct_fade = 1. - timer_pct_silence;
 
-                let to = **music_setting as f32 / 100.;
-                let pct = (timer.percent() - timer_pct_silence).max(0.) / timer_pct_fade;
+            let to = **music_setting as f32 / 100.;
+            let pct = (timer.percent() - timer_pct_silence).max(0.) / timer_pct_fade;
 
-                let vol = SILENCE_VOLUME.lerp(&to, &Ease::quadratic_in(pct));
+            let vol = SILENCE_VOLUME.lerp(&to, &Ease::quadratic_in(pct));
 
-                sink.set_volume(vol);
-            } else if timer.just_finished() {
-                sink.set_volume(**music_setting as f32 / 100.);
-            }
+            sink.set_volume(vol);
+        } else if timer.just_finished() {
+            sink.set_volume(**music_setting as f32 / 100.);
         }
     }
 }

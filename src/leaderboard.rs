@@ -18,22 +18,24 @@ impl Plugin for LeaderboardPlugin {
             app.init_resource::<ScoreSaved>()
                 .init_resource::<Refreshing>()
                 .init_resource::<RefreshTimer>()
-                .add_plugin(JornetPlugin::with_leaderboard(id, key))
-                .add_system(save_leaderboard_setting)
-                .add_system(create_player.in_schedule(OnEnter(GameState::Loading)))
+                .add_plugins(JornetPlugin::with_leaderboard(id, key))
+                .add_systems(Update, save_leaderboard_setting)
+                .add_systems(OnEnter(GameState::Loading), create_player)
                 .add_systems(
-                    (save_score, spawn_leaderboard).in_schedule(OnEnter(GameState::Leaderboard)),
+                    OnEnter(GameState::Leaderboard),
+                    (save_score, spawn_leaderboard),
                 )
                 .add_systems(
+                    Update,
                     (
                         initiate_refresh,
                         update_leaderboard,
                         button_actions,
                         buttons.after(NavRequestSystem),
                     )
-                        .in_set(OnUpdate(GameState::Leaderboard)),
+                        .run_if(in_state(GameState::Leaderboard)),
                 )
-                .add_system(cleanup.in_schedule(OnExit(GameState::Leaderboard)));
+                .add_systems(OnExit(GameState::Leaderboard), cleanup);
         }
     }
 }
@@ -165,10 +167,7 @@ fn update_leaderboard(
             let row = commands
                 .spawn(NodeBundle {
                     style: Style {
-                        size: Size {
-                            height: Val::Px(30.),
-                            ..default()
-                        },
+                        height: Val::Px(30.),
                         ..default()
                     },
                     ..default()
@@ -186,10 +185,7 @@ fn update_leaderboard(
                         },
                     ),
                     style: Style {
-                        size: Size {
-                            width: Val::Px(50.),
-                            ..default()
-                        },
+                        width: Val::Px(50.),
                         ..default()
                     },
                     ..default()
@@ -207,11 +203,8 @@ fn update_leaderboard(
                         },
                     ),
                     style: Style {
-                        size: Size {
-                            width: Val::Px(300.),
-                            ..default()
-                        },
-                        overflow: Overflow::Hidden,
+                        width: Val::Px(300.),
+                        overflow: Overflow::clip(),
                         ..default()
                     },
                     ..default()
@@ -250,7 +243,8 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
         color: TITLE_TEXT,
     };
     let button_style = Style {
-        size: Size::new(Val::Px(250.0), Val::Px(45.0)),
+        width: Val::Px(250.0),
+        height: Val::Px(45.0),
         margin: UiRect::all(Val::Px(5.0)),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
@@ -267,15 +261,10 @@ fn spawn_leaderboard(mut commands: Commands, assets: Res<GameAssets>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.),
-                        left: Val::Px(0.),
-                        ..default()
-                    },
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                    },
+                    top: Val::Px(0.),
+                    left: Val::Px(0.),
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
                     ..default()
                 },
                 ..default()
