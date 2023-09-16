@@ -5,10 +5,11 @@ use bevy_jornet::{JornetEvent, JornetPlugin, Leaderboard};
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
+    loading::GameAssets,
     random_name::random_name,
     settings::LeaderboardSetting,
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, OUR_SCORE_TEXT, TITLE_TEXT},
-    GameAssets, GameState, RaceTime,
+    GameState, RaceTime,
 };
 
 pub struct LeaderboardPlugin;

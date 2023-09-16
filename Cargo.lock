@@ -1127,6 +1127,7 @@ dependencies = [
 [[package]]
 name = "bevy_tiling_background"
 version = "0.10.0"
+source = "git+https://github.com/rparrett/bevy_tiling_background.git?branch=tex-typo#87c3046a21d128c9963c04a7cd646113e24af4f8"
 dependencies = [
  "bevy",
 ]
@@ -1484,6 +1485,7 @@ dependencies = [
  "bevy_mod_debugdump",
  "bevy_rapier3d",
  "bevy_tiling_background",
+ "crossbeam-channel",
  "interpolation",
  "leafwing-input-manager",
  "rand",

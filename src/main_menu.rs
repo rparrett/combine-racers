@@ -5,16 +5,17 @@ use bevy::{
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
+    loading::{AudioAssets, GameAssets},
     settings::{MusicSetting, SfxSetting},
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON},
-    AudioAssets, GameAssets, GameState, MusicController,
+    GameState, MusicController,
 };
 
 pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TipIndex>()
-            .add_systems(OnEnter(GameState::MainMenu), setup_menu)
+            .add_systems(OnEnter(GameState::MainMenu), (setup_menu, start_music))
             .add_systems(
                 Update,
                 (
@@ -320,6 +321,21 @@ fn music_volume(
     for sink in &music_query {
         sink.set_volume(**music_setting as f32 / 100.)
     }
+}
+
+fn start_music(
+    mut commands: Commands,
+    audio_assets: Res<AudioAssets>,
+    music_setting: Res<MusicSetting>,
+) {
+    commands.spawn((
+        AudioBundle {
+            source: audio_assets.music.clone(),
+            settings: PlaybackSettings::LOOP
+                .with_volume(Volume::new_relative(**music_setting as f32 / 100.)),
+        },
+        MusicController,
+    ));
 }
 
 fn cleanup_menu(mut commands: Commands, query: Query<Entity, With<MainMenuMarker>>) {

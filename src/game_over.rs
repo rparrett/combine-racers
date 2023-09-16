@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
+    loading::GameAssets,
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, TITLE_TEXT},
-    GameAssets, GameState,
+    GameState,
 };
 
 pub struct GameOverPlugin;

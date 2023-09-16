@@ -4,8 +4,8 @@
 mod countdown;
 mod game_over;
 mod leaderboard;
+mod loading;
 mod main_menu;
-mod music_fade_in;
 mod random_name;
 mod save;
 mod settings;
@@ -18,7 +18,6 @@ use bevy::{
     pbr::CascadeShadowConfigBuilder, prelude::*, reflect::TypePath, time::Stopwatch,
     transform::TransformSystem,
 };
-use bevy_asset_loader::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
@@ -31,8 +30,8 @@ use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
 use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
 use leafwing_input_manager::{axislike::AxisType, prelude::*};
+use loading::{AudioAssets, GameAssets, LoadingPlugin};
 use main_menu::MainMenuPlugin;
-use music_fade_in::MusicFadeInPlugin;
 use save::SavePlugin;
 use settings::SfxSetting;
 use ui::{TrickText, UiPlugin};
@@ -70,6 +69,7 @@ enum GameState {
     #[default]
     Loading,
     Decorating,
+    Pipelines,
     MainMenu,
     Playing,
     Leaderboard,
@@ -82,29 +82,6 @@ pub struct AfterPhysics;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum GameSet {
     Movement,
-}
-
-#[derive(AssetCollection, Resource)]
-struct GameAssets {
-    #[asset(path = "track_1.glb#Scene0")]
-    track: Handle<Scene>,
-    #[asset(path = "combine.glb#Scene0")]
-    combine: Handle<Scene>,
-    #[asset(path = "bg.png")]
-    background: Handle<Image>,
-    #[asset(path = "NanumPenScript-Tweaked.ttf")]
-    font: Handle<Font>,
-}
-#[derive(AssetCollection, Resource)]
-struct AudioAssets {
-    #[asset(path = "7th-race-aiteru-sawato.ogg")]
-    music: Handle<AudioSource>,
-    #[asset(path = "combine-racers-321go.ogg")]
-    three_two_one: Handle<AudioSource>,
-    #[asset(path = "combine-racers-trick.ogg")]
-    trick: Handle<AudioSource>,
-    #[asset(path = "combine-racers-bonk.ogg")]
-    bonk: Handle<AudioSource>,
 }
 
 #[derive(Component)]
@@ -217,11 +194,7 @@ fn main() {
 
     app.insert_resource(ClearColor(Color::BLACK))
         .add_state::<GameState>()
-        .add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::Decorating),
-        )
-        .add_collection_to_loading_state::<_, GameAssets>(GameState::Loading)
-        .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
+        .add_plugins(LoadingPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         //.add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(InputMapping {
@@ -236,8 +209,7 @@ fn main() {
         .add_plugins(CountdownPlugin)
         .add_plugins(LeaderboardPlugin)
         .add_plugins(GameOverPlugin)
-        .add_plugins(SavePlugin)
-        .add_plugins(MusicFadeInPlugin);
+        .add_plugins(SavePlugin);
 
     #[cfg(feature = "inspector")]
     app.add_plugin(WorldInspectorPlugin::new());

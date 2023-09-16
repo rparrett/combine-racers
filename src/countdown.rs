@@ -1,7 +1,7 @@
 use bevy::{audio::Volume, prelude::*};
 use interpolation::Ease;
 
-use crate::{settings::SfxSetting, ui::TrickTextMarker, AudioAssets, GameState, RaceTime};
+use crate::{loading::AudioAssets, settings::SfxSetting, ui::TrickTextMarker, GameState, RaceTime};
 
 pub struct CountdownPlugin;
 impl Plugin for CountdownPlugin {
