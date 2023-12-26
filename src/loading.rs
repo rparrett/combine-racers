@@ -42,9 +42,9 @@ pub struct AudioAssets {
 struct PipelineStatus(Receiver<bool>);
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 14;
+const EXPECTED_PIPELINES: usize = 15;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 12;
+const EXPECTED_PIPELINES: usize = 13;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {

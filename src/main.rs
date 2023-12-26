@@ -12,11 +12,12 @@ mod settings;
 mod ui;
 
 use std::f32::consts::TAU;
+#[cfg(feature = "debugdump")]
+use std::{fs::File, io::Write};
 
 use bevy::{
     audio::Volume, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
-    pbr::CascadeShadowConfigBuilder, prelude::*, reflect::TypePath, time::Stopwatch,
-    transform::TransformSystem,
+    pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch, transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -25,6 +26,7 @@ use bevy_tiling_background::{
     BackgroundImageBundle, BackgroundMaterial, SetImageRepeatingExt, TilingBackgroundPlugin,
 };
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
+
 use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
 use interpolation::{Ease, Lerp};
@@ -212,14 +214,14 @@ fn main() {
         .add_plugins(SavePlugin);
 
     #[cfg(feature = "inspector")]
-    app.add_plugin(WorldInspectorPlugin::new());
+    app.add_plugins(WorldInspectorPlugin::new());
 
     app.init_resource::<RaceTime>().init_resource::<Zoom>();
 
     app.add_event::<FinishedEvent>();
 
     // TODO we may need apply_deferred somewhere in here
-    app.configure_set(
+    app.configure_sets(
         PostUpdate,
         AfterPhysics
             .after(PhysicsSet::Writeback)
@@ -295,15 +297,16 @@ fn main() {
             ..Default::default()
         };
 
-        let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, CoreSchedule::Main, &settings);
-        println!("{dot}");
+        let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, Update, &settings);
+        let mut f = File::create("debugdump_update.dot").unwrap();
+        f.write_all(dot.as_bytes()).unwrap();
     }
 
     app.run();
 }
 
 // This is the list of "things in the game I want to be able to do based on input"
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, TypePath)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
     Left,
     Right,
@@ -677,7 +680,7 @@ fn collision_events(
     mut finished_event: EventWriter<FinishedEvent>,
     mut trick_text: ResMut<TrickText>,
 ) {
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         match collision_event {
             CollisionEvent::Started(e1, e2, _) => {
                 let finish_line = finish_line_query.iter_many([e1, e2]).count() > 0;
@@ -752,7 +755,7 @@ fn game_finished(
     mut events: EventReader<FinishedEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    if events.iter().count() > 0 {
+    if events.read().count() > 0 {
         if get_leaderboard_credentials().is_some() {
             next_state.set(GameState::Leaderboard);
         } else {

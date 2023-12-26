@@ -90,7 +90,7 @@ fn save_leaderboard_setting(
     leaderboard: Res<Leaderboard>,
 ) {
     if !events
-        .iter()
+        .read()
         .any(|e| matches!(*e, JornetEvent::CreatePlayerSuccess))
     {
         return;
@@ -103,7 +103,7 @@ fn save_leaderboard_setting(
 
 fn initiate_refresh(leaderboard: Res<Leaderboard>, mut events: EventReader<JornetEvent>) {
     if !events
-        .iter()
+        .read()
         .any(|e| matches!(*e, JornetEvent::SendScoreSuccess))
     {
         return;
@@ -124,7 +124,7 @@ fn update_leaderboard(
     mut events: EventReader<JornetEvent>,
 ) {
     if !events
-        .iter()
+        .read()
         .any(|e| matches!(*e, JornetEvent::RefreshLeaderboardSuccess))
     {
         return;
