@@ -400,7 +400,7 @@ fn decorate_track(
     }
 
     if decorated {
-        next_state.set(GameState::MainMenu);
+        next_state.set(GameState::Pipelines);
     }
 }
 

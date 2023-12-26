@@ -15,7 +15,8 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TipIndex>()
-            .add_systems(OnEnter(GameState::MainMenu), (setup_menu, start_music))
+            .add_systems(OnEnter(GameState::MainMenu), setup_menu)
+            .add_systems(OnExit(GameState::Pipelines), start_music)
             .add_systems(
                 Update,
                 (
