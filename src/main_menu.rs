@@ -1,14 +1,15 @@
 use bevy::{
     audio::{AudioSink, Volume},
+    pbr::{DirectionalLightShadowMap, ShadowFilteringMethod},
     prelude::*,
 };
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
     loading::{AudioAssets, GameAssets},
-    settings::{MusicSetting, SfxSetting},
+    settings::{MusicSetting, SfxSetting, ShadowSetting},
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON},
-    GameState, MusicController,
+    GameState, MainCamera, MusicController,
 };
 
 pub struct MainMenuPlugin;
@@ -22,6 +23,7 @@ impl Plugin for MainMenuPlugin {
                 (
                     sfx_volume,
                     music_volume,
+                    shadow_changed,
                     button_actions,
                     buttons.after(NavRequestSystem),
                 )
@@ -45,6 +47,11 @@ struct SfxSettingButton;
 
 #[derive(Component)]
 struct SfxSettingButtonText;
+#[derive(Component)]
+struct ShadowSettingButton;
+
+#[derive(Component)]
+struct ShadowSettingButtonText;
 #[derive(Component)]
 struct TipText;
 #[derive(Resource, Default, Deref, DerefMut)]
@@ -76,6 +83,7 @@ fn setup_menu(
     assets: Res<GameAssets>,
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
+    shadow: Res<ShadowSetting>,
     mut tip_index: ResMut<TipIndex>,
 ) {
     info!("setup_menu");
@@ -151,7 +159,7 @@ fn setup_menu(
 
     let audio_settings_title = commands
         .spawn(
-            TextBundle::from_section("Audio", subtitle_text_style).with_style(Style {
+            TextBundle::from_section("Audio", subtitle_text_style.clone()).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
             }),
@@ -180,7 +188,7 @@ fn setup_menu(
     let music_button = commands
         .spawn((
             ButtonBundle {
-                style: button_style,
+                style: button_style.clone(),
                 background_color: NORMAL_BUTTON.into(),
                 ..default()
             },
@@ -190,8 +198,36 @@ fn setup_menu(
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(format!("Music {}%", **music), button_text_style),
+                TextBundle::from_section(format!("Music {}%", **music), button_text_style.clone()),
                 MusicSettingButtonText,
+            ));
+        })
+        .id();
+
+    let shadow_settings_title = commands
+        .spawn(
+            TextBundle::from_section("Shadows", subtitle_text_style).with_style(Style {
+                margin: UiRect::all(Val::Px(10.0)),
+                ..default()
+            }),
+        )
+        .id();
+
+    let shadow_button = commands
+        .spawn((
+            ButtonBundle {
+                style: button_style,
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Shadow,
+            ShadowSettingButton,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(format!("{}", *shadow), button_text_style),
+                ShadowSettingButtonText,
             ));
         })
         .id();
@@ -202,6 +238,8 @@ fn setup_menu(
         audio_settings_title,
         sfx_button,
         music_button,
+        shadow_settings_title,
+        shadow_button,
     ]);
 
     commands
@@ -248,6 +286,7 @@ enum MenuButton {
     Play,
     Sfx,
     Music,
+    Shadow,
 }
 
 // Seems like bevy-ui-navigation forces us to write this abomination of a megasystem
@@ -259,8 +298,10 @@ fn button_actions(
     mut text_queries: ParamSet<(
         Query<&mut Text, With<SfxSettingButtonText>>,
         Query<&mut Text, With<MusicSettingButtonText>>,
+        Query<&mut Text, With<ShadowSettingButtonText>>,
     )>,
     mut sfx_setting: ResMut<SfxSetting>,
+    mut shadow_setting: ResMut<ShadowSetting>,
 ) {
     // Note: we have a closure here because the `buttons` query is mutable.
     // for immutable queries, you can use `.activated_in_query` which returns an iterator.
@@ -291,6 +332,13 @@ fn button_actions(
 
                 for mut text in text_queries.p1().iter_mut() {
                     text.sections[0].value = format!("Music {}%", **music_setting);
+                }
+            }
+            MenuButton::Shadow => {
+                *shadow_setting = shadow_setting.next();
+
+                for mut text in text_queries.p2().iter_mut() {
+                    text.sections[0].value = format!("{}", *shadow_setting);
                 }
             }
         }
@@ -337,6 +385,52 @@ fn start_music(
         },
         MusicController,
     ));
+}
+
+fn shadow_changed(
+    mut commands: Commands,
+    shadow_setting: Res<ShadowSetting>,
+    camera_query: Query<Entity, With<MainCamera>>,
+    mut light_query: Query<&mut DirectionalLight>,
+) {
+    // Do run when ShadowSetting is first added by SavePlugin
+    if !shadow_setting.is_changed() {
+        return;
+    }
+
+    let mut light = light_query.single_mut();
+    let camera_entity = camera_query.single();
+
+    match *shadow_setting {
+        ShadowSetting::None => {
+            light.shadows_enabled = false;
+            commands
+                .entity(camera_entity)
+                .insert(ShadowFilteringMethod::Hardware2x2);
+            commands.insert_resource(DirectionalLightShadowMap { size: 256 });
+        }
+        ShadowSetting::Low => {
+            light.shadows_enabled = true;
+            commands
+                .entity(camera_entity)
+                .insert(ShadowFilteringMethod::Hardware2x2);
+            commands.insert_resource(DirectionalLightShadowMap { size: 256 });
+        }
+        ShadowSetting::Medium => {
+            light.shadows_enabled = true;
+            commands
+                .entity(camera_entity)
+                .insert(ShadowFilteringMethod::Castano13);
+            commands.insert_resource(DirectionalLightShadowMap { size: 512 });
+        }
+        ShadowSetting::High => {
+            light.shadows_enabled = true;
+            commands
+                .entity(camera_entity)
+                .insert(ShadowFilteringMethod::Castano13);
+            commands.insert_resource(DirectionalLightShadowMap { size: 1024 });
+        }
+    }
 }
 
 fn cleanup_menu(mut commands: Commands, query: Query<Entity, With<MainMenuMarker>>) {

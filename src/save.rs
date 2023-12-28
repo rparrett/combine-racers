@@ -1,4 +1,4 @@
-use crate::settings::{LeaderboardSetting, MusicSetting, SfxSetting};
+use crate::settings::{LeaderboardSetting, MusicSetting, SfxSetting, ShadowSetting};
 
 use bevy::prelude::*;
 use ron::ser::PrettyConfig;
@@ -22,12 +22,14 @@ struct SaveFile {
     sfx: SfxSetting,
     music: MusicSetting,
     leaderboard: LeaderboardSetting,
+    shadow: ShadowSetting,
 }
 
 pub fn load_system(mut commands: Commands) {
     commands.insert_resource(SfxSetting::default());
     commands.insert_resource(MusicSetting::default());
     commands.insert_resource(LeaderboardSetting::default());
+    commands.insert_resource(ShadowSetting::default());
 
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -49,6 +51,7 @@ pub fn load_system(mut commands: Commands) {
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
         commands.insert_resource(save_file.leaderboard);
+        commands.insert_resource(save_file.shadow);
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -80,6 +83,7 @@ pub fn load_system(mut commands: Commands) {
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
         commands.insert_resource(save_file.leaderboard);
+        commands.insert_resource(save_file.shadow);
     }
 }
 
@@ -87,12 +91,14 @@ pub fn save_system(
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
     leaderboard: Res<LeaderboardSetting>,
+    shadow: Res<ShadowSetting>,
 ) {
     let sfx_changed = sfx.is_changed() && !sfx.is_added();
     let music_changed = music.is_changed() && !music.is_added();
     let leaderboard_changed = leaderboard.is_changed() && !leaderboard.is_added();
+    let shadow_changed = shadow.is_changed() && !shadow.is_added();
 
-    if !sfx_changed && !music_changed && !leaderboard_changed {
+    if !sfx_changed && !music_changed && !leaderboard_changed && !shadow_changed {
         return;
     }
 
@@ -102,6 +108,7 @@ pub fn save_system(
         sfx: sfx.clone(),
         music: music.clone(),
         leaderboard: leaderboard.clone(),
+        shadow: shadow.clone(),
     };
 
     let pretty = PrettyConfig::new();

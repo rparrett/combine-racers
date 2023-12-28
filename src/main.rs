@@ -170,6 +170,9 @@ impl Default for JumpCooldown {
 #[derive(Event)]
 struct FinishedEvent;
 
+#[derive(Component)]
+pub struct MainCamera;
+
 const LAVA: f32 = -200.;
 
 fn main() {
@@ -331,14 +334,17 @@ fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
         UiCameraConfig { show_ui: false },
     ));
 
-    commands.spawn(Camera3dBundle {
-        camera_3d: Camera3d {
-            clear_color: ClearColorConfig::None,
-            ..default()
+    commands.spawn((
+        Camera3dBundle {
+            camera_3d: Camera3d {
+                clear_color: ClearColorConfig::None,
+                ..default()
+            },
+            transform: Transform::from_xyz(0., 0., zoom.target),
+            ..Default::default()
         },
-        transform: Transform::from_xyz(0., 0., zoom.target),
-        ..Default::default()
-    });
+        MainCamera,
+    ));
 }
 
 fn decorate_track(
@@ -500,6 +506,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
 
     commands
         .spawn((
+            Name::new("Player"),
             SceneBundle {
                 scene: game_assets.combine.clone(),
                 ..default()
