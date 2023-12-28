@@ -17,7 +17,8 @@ use std::{fs::File, io::Write};
 
 use bevy::{
     audio::Volume, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
-    pbr::CascadeShadowConfigBuilder, prelude::*, time::Stopwatch, transform::TransformSystem,
+    pbr::CascadeShadowConfigBuilder, prelude::*, render::view::NoFrustumCulling, time::Stopwatch,
+    transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -417,11 +418,13 @@ fn setup_game(
 ) {
     commands.set_image_repeating(assets.background.clone());
 
-    commands.spawn(
+    commands.spawn((
         BackgroundImageBundle::from_image(assets.background.clone(), materials.as_mut())
             .with_movement_scale(1.0)
             .at_z_layer(0.1),
-    );
+        // Workaround for https://github.com/BraymatterOrg/bevy_tiling_background/issues/22
+        NoFrustumCulling,
+    ));
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
