@@ -45,6 +45,9 @@ pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 
+pub const BOOST_PX_PER_SECOND: f32 = 30.;
+pub const BOOST_NOTCH_PX: f32 = 2.;
+
 #[derive(Component)]
 pub struct GameUiMarker;
 #[derive(Component)]
@@ -209,8 +212,8 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                     for _ in 0..10 {
                         parent.spawn(NodeBundle {
                             style: Style {
-                                min_width: Val::Px(28.),
-                                margin: UiRect::left(Val::Px(2.)),
+                                min_width: Val::Px(BOOST_PX_PER_SECOND - BOOST_NOTCH_PX),
+                                margin: UiRect::left(Val::Px(BOOST_NOTCH_PX)),
                                 height: Val::Percent(100.),
                                 ..default()
                             },
@@ -237,8 +240,8 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                     for _ in 0..10 {
                         parent.spawn(NodeBundle {
                             style: Style {
-                                min_width: Val::Px(28.),
-                                margin: UiRect::left(Val::Px(2.)),
+                                min_width: Val::Px(BOOST_PX_PER_SECOND - BOOST_NOTCH_PX),
+                                margin: UiRect::left(Val::Px(BOOST_NOTCH_PX)),
                                 height: Val::Percent(100.),
                                 ..default()
                             },
@@ -365,11 +368,11 @@ fn boost_gauge(
 ) {
     for boost in query.iter() {
         for mut style in left_query.iter_mut() {
-            style.width = Val::Px(boost.remaining * 30.);
+            style.width = Val::Px(boost.remaining * BOOST_PX_PER_SECOND);
         }
 
         for mut style in right_query.iter_mut() {
-            style.width = Val::Px(boost.remaining * 30.);
+            style.width = Val::Px(boost.remaining * BOOST_PX_PER_SECOND);
         }
     }
 }
