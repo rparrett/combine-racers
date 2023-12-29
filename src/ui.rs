@@ -13,7 +13,8 @@ impl Plugin for UiPlugin {
             .add_systems(OnExit(GameState::MainMenu), setup)
             .add_systems(
                 Update,
-                (fade_trick_text, race_time, trick_text).run_if(in_state(GameState::Playing)),
+                (fade_trick_text, race_time, trick_text, boost_gauge)
+                    .run_if(in_state(GameState::Playing)),
             )
             .add_systems(
                 PostUpdate,
@@ -59,6 +60,10 @@ impl Default for TrickTextTimer {
 pub struct RaceTimeText;
 #[derive(Component)]
 pub struct SpeedometerText;
+#[derive(Component)]
+pub struct BoostLeftNode;
+#[derive(Component)]
+pub struct BoostRightNode;
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct TrickText(String);
 
@@ -160,6 +165,56 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                     ..Default::default()
                 },
                 SpeedometerText,
+            ));
+        });
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    right: Val::Px(5.),
+                    bottom: Val::Px(5.),
+                    margin: UiRect {
+                        left: Val::Auto,
+                        right: Val::Auto,
+                        ..default()
+                    },
+                    width: Val::Percent(100.),
+                    height: Val::Px(60.),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                ..default()
+            },
+            GameUiMarker,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                NodeBundle {
+                    style: Style {
+                        margin: UiRect::right(Val::Px(70.)),
+                        width: Val::Px(0.),
+                        height: Val::Px(5.),
+                        ..default()
+                    },
+                    background_color: BOOSTED_TEXT.into(),
+                    ..default()
+                },
+                BoostLeftNode,
+            ));
+            parent.spawn((
+                NodeBundle {
+                    style: Style {
+                        margin: UiRect::left(Val::Px(70.)),
+                        width: Val::Px(0.),
+                        height: Val::Px(5.),
+                        ..default()
+                    },
+                    background_color: BOOSTED_TEXT.into(),
+                    ..default()
+                },
+                BoostRightNode,
             ));
         });
 }
@@ -268,6 +323,22 @@ fn speedometer_text(
             } else {
                 text.sections[0].style.color = TITLE_TEXT
             }
+        }
+    }
+}
+
+fn boost_gauge(
+    query: Query<&Boost, Changed<Boost>>,
+    mut left_query: Query<&mut Style, (With<BoostLeftNode>, Without<BoostRightNode>)>,
+    mut right_query: Query<&mut Style, (With<BoostRightNode>, Without<BoostLeftNode>)>,
+) {
+    for boost in query.iter() {
+        for mut style in left_query.iter_mut() {
+            style.width = Val::Px(boost.remaining * 30.);
+        }
+
+        for mut style in right_query.iter_mut() {
+            style.width = Val::Px(boost.remaining * 30.);
         }
     }
 }
