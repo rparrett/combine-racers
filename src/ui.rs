@@ -190,32 +190,63 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             GameUiMarker,
         ))
         .with_children(|parent| {
-            parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        margin: UiRect::right(Val::Px(70.)),
-                        width: Val::Px(0.),
-                        height: Val::Px(5.),
+            parent
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            flex_direction: FlexDirection::RowReverse,
+                            margin: UiRect::right(Val::Px(70.)),
+                            width: Val::Px(0.),
+                            height: Val::Px(5.),
+                            overflow: Overflow::clip(),
+                            ..default()
+                        },
                         ..default()
                     },
-                    background_color: BOOSTED_TEXT.into(),
-                    ..default()
-                },
-                BoostLeftNode,
-            ));
-            parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        margin: UiRect::left(Val::Px(70.)),
-                        width: Val::Px(0.),
-                        height: Val::Px(5.),
+                    BoostLeftNode,
+                ))
+                .with_children(|parent| {
+                    for _ in 0..10 {
+                        parent.spawn(NodeBundle {
+                            style: Style {
+                                min_width: Val::Px(28.),
+                                margin: UiRect::left(Val::Px(2.)),
+                                height: Val::Percent(100.),
+                                ..default()
+                            },
+                            background_color: BOOSTED_TEXT.into(),
+                            ..default()
+                        });
+                    }
+                });
+            parent
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            margin: UiRect::left(Val::Px(70.)),
+                            width: Val::Px(0.),
+                            height: Val::Px(5.),
+                            overflow: Overflow::clip(),
+                            ..default()
+                        },
                         ..default()
                     },
-                    background_color: BOOSTED_TEXT.into(),
-                    ..default()
-                },
-                BoostRightNode,
-            ));
+                    BoostRightNode,
+                ))
+                .with_children(|parent| {
+                    for _ in 0..10 {
+                        parent.spawn(NodeBundle {
+                            style: Style {
+                                min_width: Val::Px(28.),
+                                margin: UiRect::left(Val::Px(2.)),
+                                height: Val::Percent(100.),
+                                ..default()
+                            },
+                            background_color: BOOSTED_TEXT.into(),
+                            ..default()
+                        });
+                    }
+                });
         });
 }
 
