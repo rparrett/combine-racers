@@ -16,9 +16,9 @@ use std::f32::consts::TAU;
 use std::{fs::File, io::Write};
 
 use bevy::{
-    audio::Volume, core_pipeline::clear_color::ClearColorConfig, log::LogPlugin,
-    pbr::CascadeShadowConfigBuilder, prelude::*, render::view::NoFrustumCulling, time::Stopwatch,
-    transform::TransformSystem,
+    asset::AssetMetaCheck, audio::Volume, core_pipeline::clear_color::ClearColorConfig,
+    log::LogPlugin, pbr::CascadeShadowConfigBuilder, prelude::*, render::view::NoFrustumCulling,
+    time::Stopwatch, transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -195,6 +195,11 @@ fn main() {
 
     #[cfg(feature = "debugdump")]
     let default_plugins = default_plugins.disable::<bevy::log::LogPlugin>();
+
+    // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
+    // the CDN servers HTTP 403 errors instead of 404 when files don't exists, which
+    // causes Bevy to break.
+    app.insert_resource(AssetMetaCheck::Never);
 
     app.add_plugins(default_plugins);
 
