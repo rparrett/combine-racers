@@ -312,8 +312,8 @@ fn main() {
 // This is the list of "things in the game I want to be able to do based on input"
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
-    Left,
-    Right,
+    Back,
+    Forward,
     LeftRight,
     RotateLeft,
     RotateRight,
@@ -475,10 +475,10 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
     axes.insert(LockedAxes::TRANSLATION_LOCKED_Z);
 
     let mut input_map = InputMap::new([
-        (KeyCode::Left, Action::Left),
-        (KeyCode::A, Action::Left),
-        (KeyCode::Right, Action::Right),
-        (KeyCode::D, Action::Right),
+        (KeyCode::Left, Action::Back),
+        (KeyCode::A, Action::Back),
+        (KeyCode::Right, Action::Forward),
+        (KeyCode::D, Action::Forward),
         (KeyCode::Q, Action::RotateLeft),
         (KeyCode::E, Action::RotateRight),
         (KeyCode::Space, Action::Jump),
@@ -487,8 +487,8 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
     ]);
 
     input_map.insert_multiple([
-        (GamepadButtonType::DPadLeft, Action::Left),
-        (GamepadButtonType::DPadRight, Action::Right),
+        (GamepadButtonType::DPadLeft, Action::Back),
+        (GamepadButtonType::DPadRight, Action::Forward),
         (GamepadButtonType::LeftTrigger, Action::RotateLeft),
         (GamepadButtonType::RightTrigger, Action::RotateRight),
         (GamepadButtonType::South, Action::Jump),
@@ -499,11 +499,11 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
     input_map.insert_multiple([
         (
             SingleAxis::negative_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), -0.3),
-            Action::Left,
+            Action::Back,
         ),
         (
             SingleAxis::positive_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), 0.3),
-            Action::Right,
+            Action::Forward,
         ),
     ]);
 
@@ -622,10 +622,10 @@ fn player_movement(
     {
         force.force = Vec3::ZERO;
 
-        if action_state.pressed(Action::Left) && **jump_wheels >= 1 {
+        if action_state.pressed(Action::Back) && **jump_wheels >= 1 {
             force.force = transform.rotation * -Vec3::X * DRIVE_FORCE;
         }
-        if action_state.pressed(Action::Right) && **jump_wheels >= 1 {
+        if action_state.pressed(Action::Forward) && **jump_wheels >= 1 {
             force.force = transform.rotation * Vec3::X * DRIVE_FORCE;
         }
         if action_state.pressed(Action::RotateLeft) {
