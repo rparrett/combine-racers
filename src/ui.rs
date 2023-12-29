@@ -150,11 +150,11 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
             parent.spawn((
                 TextBundle {
                     text: Text::from_section(
-                        "0%",
+                        "0 kph",
                         TextStyle {
                             font: assets.font.clone(),
                             font_size: 60.0,
-                            color: Color::WHITE,
+                            color: TITLE_TEXT,
                         },
                     ),
                     ..Default::default()
