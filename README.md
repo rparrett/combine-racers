@@ -35,18 +35,14 @@ The [leaderboard server](https://jornet.vleue.com/) was kindly provided by [mock
 
 ## Track workflow
 
-- Create path on grid in inkscape (save this)
-- Join all separate paths into one path
-- Stroke path
-- Convert stroke to path (save this separately)
-- Import stroke path into blender
+Asset sources are in the [combine-racers-assets](https://github.com/rparrett/combine-racers-assets) repo.
+
+- Create path on grid in inkscape
+- Track segments should be separate paths
+- Import svg into `combine-racers-geometry-nodes.blend`.
 - Scale by 500 (s500) and (g) move start of track just below origin
-- Enter edit mode and select all
-- Select extrude tool and click and drag
-- While dragging, type 30 to extrude 30 units
-- Enter object mode and select the track
-- Move -15 units in z (gz-15)
 - Select all and apply all transformations (command-a)
-- Rename track mesh to `Track`
+- Apply geometry node modifier to track segments
+- Rename track segment curves to `Track`
 - Add a cube and name the mesh `FinishLineCollider`
-- Export GLTF. Check remember. Uncheck +Y Up.
+- Export GLTF. Check remember. Uncheck +Y Up. Check "apply modifiers." Uncheck animations, etc.
