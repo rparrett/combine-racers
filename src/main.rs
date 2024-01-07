@@ -18,12 +18,19 @@ use std::f32::consts::TAU;
 use std::{fs::File, io::Write};
 
 use bevy::{
-    asset::AssetMetaCheck, audio::Volume, core_pipeline::clear_color::ClearColorConfig,
-    log::LogPlugin, pbr::CascadeShadowConfigBuilder, prelude::*, render::view::NoFrustumCulling,
-    time::Stopwatch, transform::TransformSystem,
+    asset::AssetMetaCheck,
+    audio::Volume,
+    core_pipeline::clear_color::ClearColorConfig,
+    log::LogPlugin,
+    pbr::CascadeShadowConfigBuilder,
+    prelude::*,
+    render::view::{NoFrustumCulling, RenderLayers},
+    time::Stopwatch,
+    transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+
 use bevy_rapier3d::prelude::*;
 use bevy_tiling_background::{
     BackgroundImageBundle, BackgroundMaterial, SetImageRepeatingExt, TilingBackgroundPlugin,
@@ -210,7 +217,6 @@ fn main() {
         .add_state::<GameState>()
         .add_plugins(LoadingPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        //.add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(InputMapping {
             keyboard_navigation: true,
             ..default()
@@ -226,7 +232,15 @@ fn main() {
         .add_plugins(SavePlugin);
 
     #[cfg(feature = "inspector")]
-    app.add_plugins(WorldInspectorPlugin::new());
+    {
+        app.add_plugins(WorldInspectorPlugin::new());
+        app.add_plugins(RapierDebugRenderPlugin::default());
+
+        // Don't show debug viz on 2d background camera.
+        let mut config = GizmoConfig::default();
+        config.render_layers = RenderLayers::layer(1);
+        app.insert_resource(config);
+    }
 
     app.init_resource::<RaceTime>().init_resource::<Zoom>();
 
@@ -352,6 +366,7 @@ fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
             transform: Transform::from_xyz(0., 0., zoom.target),
             ..Default::default()
         },
+        RenderLayers::all(),
         MainCamera,
     ));
 }
