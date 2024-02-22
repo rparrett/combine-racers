@@ -3,7 +3,7 @@ use bevy::{
     pbr::{DirectionalLightShadowMap, ShadowFilteringMethod},
     prelude::*,
 };
-use bevy_ui_navigation::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 
 use crate::{
     loading::{AudioAssets, GameAssets},
@@ -353,8 +353,7 @@ fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: 
 
     commands.spawn(AudioBundle {
         source: game_audio.trick.clone(),
-        settings: PlaybackSettings::DESPAWN
-            .with_volume(Volume::new_relative(**sfx_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**sfx_setting as f32 / 100.)),
     });
 }
 
@@ -381,7 +380,7 @@ fn start_music(
         AudioBundle {
             source: audio_assets.music.clone(),
             settings: PlaybackSettings::LOOP
-                .with_volume(Volume::new_relative(**music_setting as f32 / 100.)),
+                .with_volume(Volume::new(**music_setting as f32 / 100.)),
         },
         MusicController,
     ));

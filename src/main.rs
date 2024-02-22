@@ -18,28 +18,21 @@ use std::f32::consts::TAU;
 use std::{fs::File, io::Write};
 
 use bevy::{
-    asset::AssetMetaCheck,
-    audio::Volume,
-    core_pipeline::clear_color::ClearColorConfig,
-    log::LogPlugin,
-    pbr::CascadeShadowConfigBuilder,
-    prelude::*,
-    render::view::{NoFrustumCulling, RenderLayers},
-    time::Stopwatch,
-    transform::TransformSystem,
+    asset::AssetMetaCheck, audio::Volume, log::LogPlugin, pbr::CascadeShadowConfigBuilder,
+    prelude::*, render::view::RenderLayers, time::Stopwatch, transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
+use bevy_alt_ui_navigation_lite::{systems::InputMapping, DefaultNavigationPlugins};
 use bevy_rapier3d::prelude::*;
 use bevy_tiling_background::{
     BackgroundImageBundle, BackgroundMaterial, SetImageRepeatingExt, TilingBackgroundPlugin,
 };
-use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 
 use countdown::CountdownPlugin;
 use game_over::GameOverPlugin;
-use interpolation::{Ease, Lerp};
+use interpolation::Ease;
 use leaderboard::{get_leaderboard_credentials, LeaderboardPlugin};
 use leafwing_input_manager::{axislike::AxisType, prelude::*};
 use loading::{AudioAssets, GameAssets, LoadingPlugin};
@@ -98,9 +91,6 @@ pub enum GameSet {
 
 #[derive(Component)]
 struct MusicController;
-
-#[derive(Component)]
-struct LightContainer;
 
 #[derive(Component, Deref, DerefMut)]
 struct SpeedLimit(f32);
@@ -192,11 +182,11 @@ fn main() {
         .set(LogPlugin {
             filter: "info,bevy_ecs=debug,wgpu_core=warn,wgpu_hal=warn,combine_racers=debug".into(),
             level: bevy::log::Level::DEBUG,
+            ..default()
         })
         .set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Combine Racers".into(),
-                fit_canvas_to_parent: true,
                 ..default()
             }),
             ..default()
@@ -214,7 +204,7 @@ fn main() {
     app.add_plugins(default_plugins);
 
     app.insert_resource(ClearColor(Color::BLACK))
-        .add_state::<GameState>()
+        .init_state::<GameState>()
         .add_plugins(LoadingPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .insert_resource(InputMapping {
@@ -235,11 +225,6 @@ fn main() {
     {
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_plugins(RapierDebugRenderPlugin::default());
-
-        // Don't show debug viz on 2d background camera.
-        let mut config = GizmoConfig::default();
-        config.render_layers = RenderLayers::layer(1);
-        app.insert_resource(config);
     }
 
     app.init_resource::<RaceTime>().init_resource::<Zoom>();
@@ -253,6 +238,8 @@ fn main() {
             .after(PhysicsSet::Writeback)
             .before(TransformSystem::TransformPropagate),
     );
+
+    app.add_systems(Startup, configure_gizmos);
 
     app.add_systems(OnExit(GameState::Loading), spawn_camera)
         .add_systems(OnEnter(GameState::Decorating), setup_game)
@@ -346,20 +333,19 @@ enum Action {
 
 fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
     // For the background
-    commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: -1,
-                ..default()
-            },
+    commands.spawn(Camera2dBundle {
+        camera: Camera {
+            order: -1,
             ..default()
         },
-        UiCameraConfig { show_ui: false },
-    ));
+        ..default()
+    });
+
+    // TODO don't render UI to the background camera
 
     commands.spawn((
         Camera3dBundle {
-            camera_3d: Camera3d {
+            camera: Camera {
                 clear_color: ClearColorConfig::None,
                 ..default()
             },
@@ -441,17 +427,15 @@ fn setup_game(
 ) {
     commands.set_image_repeating(assets.background.clone());
 
-    commands.spawn((
+    commands.spawn(
         BackgroundImageBundle::from_image(assets.background.clone(), materials.as_mut())
             .with_movement_scale(1.0)
             .at_z_layer(0.1),
-        // Workaround for https://github.com/BraymatterOrg/bevy_tiling_background/issues/22
-        NoFrustumCulling,
-    ));
+    );
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 32_000.0,
+            illuminance: 10_000.0,
             shadows_enabled: true,
             ..default()
         },
@@ -466,7 +450,7 @@ fn setup_game(
 
     // ambient light
     commands.insert_resource(AmbientLight {
-        brightness: 0.15,
+        brightness: 60.0,
         ..default()
     });
 
@@ -498,35 +482,35 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
     axes.insert(LockedAxes::TRANSLATION_LOCKED_Z);
 
     let mut input_map = InputMap::new([
-        (KeyCode::Left, Action::Back),
-        (KeyCode::A, Action::Back),
-        (KeyCode::Right, Action::Forward),
-        (KeyCode::D, Action::Forward),
-        (KeyCode::Q, Action::RotateLeft),
-        (KeyCode::E, Action::RotateRight),
-        (KeyCode::Space, Action::Jump),
-        (KeyCode::Z, Action::ToggleZoom),
-        (KeyCode::Escape, Action::Reset),
+        (Action::Back, KeyCode::ArrowLeft),
+        (Action::Back, KeyCode::KeyA),
+        (Action::Forward, KeyCode::ArrowRight),
+        (Action::Forward, KeyCode::KeyD),
+        (Action::RotateLeft, KeyCode::KeyQ),
+        (Action::RotateRight, KeyCode::KeyE),
+        (Action::Jump, KeyCode::Space),
+        (Action::ToggleZoom, KeyCode::KeyZ),
+        (Action::Reset, KeyCode::Escape),
     ]);
 
     input_map.insert_multiple([
-        (GamepadButtonType::DPadLeft, Action::Back),
-        (GamepadButtonType::DPadRight, Action::Forward),
-        (GamepadButtonType::LeftTrigger, Action::RotateLeft),
-        (GamepadButtonType::RightTrigger, Action::RotateRight),
-        (GamepadButtonType::South, Action::Jump),
-        (GamepadButtonType::North, Action::ToggleZoom),
-        (GamepadButtonType::Select, Action::Reset),
+        (Action::Back, GamepadButtonType::DPadLeft),
+        (Action::Forward, GamepadButtonType::DPadRight),
+        (Action::RotateLeft, GamepadButtonType::LeftTrigger),
+        (Action::RotateRight, GamepadButtonType::RightTrigger),
+        (Action::Jump, GamepadButtonType::South),
+        (Action::ToggleZoom, GamepadButtonType::North),
+        (Action::Reset, GamepadButtonType::Select),
     ]);
 
     input_map.insert_multiple([
         (
-            SingleAxis::negative_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), -0.3),
             Action::Back,
+            SingleAxis::negative_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), -0.3),
         ),
         (
-            SingleAxis::positive_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), 0.3),
             Action::Forward,
+            SingleAxis::positive_only(AxisType::Gamepad(GamepadAxisType::LeftStickX), 0.3),
         ),
     ]);
 
@@ -645,19 +629,19 @@ fn player_movement(
     {
         force.force = Vec3::ZERO;
 
-        if action_state.pressed(Action::Back) && **jump_wheels >= 1 {
+        if action_state.pressed(&Action::Back) && **jump_wheels >= 1 {
             force.force = transform.rotation * -Vec3::X * DRIVE_FORCE;
         }
-        if action_state.pressed(Action::Forward) && **jump_wheels >= 1 {
+        if action_state.pressed(&Action::Forward) && **jump_wheels >= 1 {
             force.force = transform.rotation * Vec3::X * DRIVE_FORCE;
         }
-        if action_state.pressed(Action::RotateLeft) {
+        if action_state.pressed(&Action::RotateLeft) {
             velocity.angvel += Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
-        if action_state.pressed(Action::RotateRight) {
+        if action_state.pressed(&Action::RotateRight) {
             velocity.angvel += -Vec3::Z * ROT_SPEED * time.delta_seconds();
         }
-        if action_state.just_pressed(Action::Jump) && **jump_wheels >= 1 && !**jump_cooldown {
+        if action_state.just_pressed(&Action::Jump) && **jump_wheels >= 1 && !**jump_cooldown {
             // We don't want a jump from an angled ramp to impart any impulse in the backwards
             // direction, slowing the player down.
             //
@@ -898,7 +882,7 @@ fn track_trick(
                 commands.spawn(AudioBundle {
                     source: game_audio.trick.clone(),
                     settings: PlaybackSettings::DESPAWN
-                        .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+                        .with_volume(Volume::new(**audio_setting as f32 / 100.)),
                 });
             }
 
@@ -933,7 +917,7 @@ fn race_time(time: Res<Time>, mut race_time: ResMut<RaceTime>) {
 
 fn start_zoom(query: Query<&ActionState<Action>, With<Player>>, mut zoom: ResMut<Zoom>) {
     let action_state = query.single();
-    if action_state.just_pressed(Action::ToggleZoom) && zoom.timer.paused() {
+    if action_state.just_pressed(&Action::ToggleZoom) && zoom.timer.paused() {
         (zoom.target, zoom.from) = (zoom.from, zoom.target);
 
         zoom.timer.reset();
@@ -956,7 +940,7 @@ fn zoom(
 
     let z = zoom
         .from
-        .lerp(&zoom.target, &Ease::quadratic_in_out(zoom.timer.percent()));
+        .lerp(zoom.target, Ease::quadratic_in_out(zoom.timer.fraction()));
 
     camera.translation.z = z;
 
@@ -976,7 +960,7 @@ fn bonk_sound(
             commands.spawn(AudioBundle {
                 source: game_audio.bonk.clone(),
                 settings: PlaybackSettings::ONCE
-                    .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
             });
         }
     }
@@ -1001,7 +985,7 @@ fn reset_action(
     mut race_time: ResMut<RaceTime>,
 ) {
     let action_state = query.single();
-    if action_state.just_pressed(Action::Reset) {
+    if action_state.just_pressed(&Action::Reset) {
         race_time.pause();
         next_state.set(GameState::GameOver);
     }
@@ -1016,4 +1000,10 @@ fn reset(
         commands.entity(entity).despawn_recursive();
     }
     race_time.reset();
+}
+
+fn configure_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
+    for (_, config, _) in config_store.iter_mut() {
+        config.render_layers = RenderLayers::layer(1);
+    }
 }

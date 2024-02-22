@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
 use bevy::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 use bevy_jornet::{JornetEvent, JornetPlugin, Leaderboard};
-use bevy_ui_navigation::prelude::*;
 
 use crate::{
     loading::GameAssets,
