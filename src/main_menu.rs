@@ -419,14 +419,14 @@ fn shadow_changed(
             light.shadows_enabled = true;
             commands
                 .entity(camera_entity)
-                .insert(ShadowFilteringMethod::Castano13);
+                .insert(ShadowFilteringMethod::Gaussian);
             commands.insert_resource(DirectionalLightShadowMap { size: 512 });
         }
         ShadowSetting::High => {
             light.shadows_enabled = true;
             commands
                 .entity(camera_entity)
-                .insert(ShadowFilteringMethod::Castano13);
+                .insert(ShadowFilteringMethod::Gaussian);
             commands.insert_resource(DirectionalLightShadowMap { size: 1024 });
         }
     }
