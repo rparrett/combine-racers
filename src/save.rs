@@ -1,4 +1,7 @@
-use crate::settings::{LeaderboardSetting, MusicSetting, SfxSetting, ShadowSetting};
+use crate::{
+    settings::{LeaderboardSetting, MusicSetting, SfxSetting, ShadowSetting},
+    GameState,
+};
 
 use bevy::prelude::*;
 use ron::ser::PrettyConfig;
@@ -13,7 +16,7 @@ pub struct SavePlugin;
 impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, save_system);
-        app.add_systems(Startup, load_system);
+        app.add_systems(OnEnter(GameState::Loading), load_system);
     }
 }
 

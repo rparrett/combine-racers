@@ -21,7 +21,7 @@ impl Plugin for LeaderboardPlugin {
                 .init_resource::<RefreshTimer>()
                 .add_plugins(JornetPlugin::with_leaderboard(id, key))
                 .add_systems(Update, save_leaderboard_setting)
-                .add_systems(OnEnter(GameState::Loading), create_player)
+                .add_systems(OnEnter(GameState::MainMenu), create_player)
                 .add_systems(
                     OnEnter(GameState::Leaderboard),
                     (save_score, spawn_leaderboard),
