@@ -18,14 +18,24 @@ use std::f32::consts::TAU;
 use std::{fs::File, io::Write};
 
 use bevy::{
-    asset::AssetMetaCheck, audio::Volume, log::LogPlugin, pbr::CascadeShadowConfigBuilder,
-    prelude::*, render::view::RenderLayers, time::Stopwatch, transform::TransformSystem,
+    asset::AssetMetaCheck,
+    audio::Volume,
+    color::palettes::css::{GRAY, GREEN, ORANGE},
+    log::LogPlugin,
+    pbr::CascadeShadowConfigBuilder,
+    prelude::*,
+    render::{
+        mesh::{Indices, VertexAttributeValues},
+        view::RenderLayers,
+    },
+    time::Stopwatch,
+    transform::TransformSystem,
 };
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use bevy_alt_ui_navigation_lite::{systems::InputMapping, DefaultNavigationPlugins};
-use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::{parry::shape::SharedShape, prelude::*};
 use bevy_tiling_background::{
     BackgroundImageBundle, BackgroundMaterial, SetImageRepeatingExt, TilingBackgroundPlugin,
 };
@@ -191,15 +201,17 @@ fn main() {
             }),
             ..default()
         })
+        .set(AssetPlugin {
+            // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
+            // the CDN servers HTTP 403 errors instead of 404 when files don't exists, which
+            // causes Bevy to break.
+            meta_check: AssetMetaCheck::Never,
+            ..default()
+        })
         .build();
 
     #[cfg(feature = "debugdump")]
     let default_plugins = default_plugins.disable::<bevy::log::LogPlugin>();
-
-    // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
-    // the CDN servers HTTP 403 errors instead of 404 when files don't exists, which
-    // causes Bevy to break.
-    app.insert_resource(AssetMetaCheck::Never);
 
     app.add_plugins(default_plugins);
 
@@ -352,7 +364,7 @@ fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
             transform: Transform::from_xyz(0., 0., zoom.target),
             ..Default::default()
         },
-        RenderLayers::all(),
+        RenderLayers::from_layers(&[0, 1]),
         MainCamera,
     ));
 }
@@ -375,16 +387,16 @@ fn decorate_track(
             Some("Track") => {
                 decorated = true;
 
+                let mut flags = TriMeshFlags::default();
+                flags.set(TriMeshFlags::FIX_INTERNAL_EDGES, true);
+                let (vtx, idx) =
+                    extract_mesh_vertices_indices(meshes.get(mesh_handle).unwrap()).unwrap();
+                let collider: Collider = SharedShape::trimesh_with_flags(vtx, idx, flags).into();
+
                 commands
                     .entity(mesh_entity)
-                    .insert(ColliderDebugColor(Color::GREEN))
-                    .insert(
-                        Collider::from_bevy_mesh(
-                            meshes.get(mesh_handle).unwrap(),
-                            &ComputedColliderShape::TriMesh,
-                        )
-                        .unwrap(),
-                    )
+                    .insert(ColliderDebugColor(GREEN.into()))
+                    .insert(collider)
                     .insert(Track);
 
                 info!("Added track collider to {:?}", mesh_entity);
@@ -394,7 +406,7 @@ fn decorate_track(
 
                 commands
                     .entity(mesh_entity)
-                    .insert(ColliderDebugColor(Color::GRAY))
+                    .insert(ColliderDebugColor(GRAY.into()))
                     .insert(
                         Collider::from_bevy_mesh(
                             meshes.get(mesh_handle).unwrap(),
@@ -536,7 +548,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
             axes,
             Velocity::default(),
             Collider::cuboid(1., 1., 1.),
-            ColliderDebugColor(Color::ORANGE),
+            ColliderDebugColor(ORANGE.into()),
             ExternalImpulse::default(),
             ExternalForce::default(),
             InputManagerBundle::<Action> {
@@ -553,7 +565,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
                 },
                 ActiveEvents::COLLISION_EVENTS,
                 Collider::ball(1.),
-                ColliderDebugColor(Color::ORANGE),
+                ColliderDebugColor(ORANGE.into()),
                 Friction::coefficient(0.1),
                 Restitution::coefficient(0.0),
                 Wheel,
@@ -565,7 +577,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
                 },
                 ActiveEvents::COLLISION_EVENTS,
                 Collider::ball(1.),
-                ColliderDebugColor(Color::ORANGE),
+                ColliderDebugColor(ORANGE.into()),
                 Friction::coefficient(0.1),
                 Restitution::coefficient(0.0),
                 Wheel,
@@ -577,7 +589,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
                 },
                 ActiveEvents::COLLISION_EVENTS,
                 Collider::ball(1.1),
-                ColliderDebugColor(Color::ORANGE),
+                ColliderDebugColor(ORANGE.into()),
                 ColliderMassProperties::Density(0.0),
                 Sensor,
                 JumpWheel,
@@ -589,7 +601,7 @@ fn spawn_player(mut commands: Commands, game_assets: Res<GameAssets>) {
                 },
                 ActiveEvents::COLLISION_EVENTS,
                 Collider::ball(1.1),
-                ColliderDebugColor(Color::ORANGE),
+                ColliderDebugColor(ORANGE.into()),
                 ColliderMassProperties::Density(0.0),
                 Sensor,
                 JumpWheel,
@@ -1006,4 +1018,42 @@ fn configure_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
     for (_, config, _) in config_store.iter_mut() {
         config.render_layers = RenderLayers::layer(1);
     }
+}
+
+// See https://github.com/dimforge/bevy_rapier/issues/571
+fn extract_mesh_vertices_indices(
+    mesh: &Mesh,
+) -> Option<(
+    Vec<bevy_rapier3d::na::Point3<bevy_rapier3d::prelude::Real>>,
+    Vec<[u32; 3]>,
+)> {
+    use bevy_rapier3d::math::Real;
+    use bevy_rapier3d::na::Point3;
+
+    let vertices = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
+    let indices = mesh.indices()?;
+
+    let vtx: Vec<_> = match vertices {
+        VertexAttributeValues::Float32(vtx) => Some(
+            vtx.chunks(3)
+                .map(|v| Point3::new(v[0] as Real, v[1] as Real, v[2] as Real))
+                .collect(),
+        ),
+        VertexAttributeValues::Float32x3(vtx) => Some(
+            vtx.iter()
+                .map(|v| Point3::new(v[0] as Real, v[1] as Real, v[2] as Real))
+                .collect(),
+        ),
+        _ => None,
+    }?;
+
+    let idx = match indices {
+        Indices::U16(idx) => idx
+            .chunks_exact(3)
+            .map(|i| [i[0] as u32, i[1] as u32, i[2] as u32])
+            .collect(),
+        Indices::U32(idx) => idx.chunks_exact(3).map(|i| [i[0], i[1], i[2]]).collect(),
+    };
+
+    Some((vtx, idx))
 }

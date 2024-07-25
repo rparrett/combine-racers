@@ -57,7 +57,7 @@ fn update(
                     timer.countdown.fraction_remaining() * timer.countdown.duration().as_secs_f32();
 
                 text.sections[0].value = format!("{}", left.ceil());
-                text.sections[0].style.color = Color::rgba(1., 0., 0., Ease::cubic_out(left % 1.));
+                text.sections[0].style.color = Color::srgba(1., 0., 0., Ease::cubic_out(left % 1.));
             }
 
             if timer.countdown.just_finished() {
@@ -71,7 +71,7 @@ fn update(
             timer.go.tick(time.delta());
             for mut text in text_query.iter_mut() {
                 text.sections[0].style.color =
-                    Color::rgba(1., 0., 0., Ease::cubic_out(timer.go.fraction_remaining()));
+                    Color::srgba(1., 0., 0., Ease::cubic_out(timer.go.fraction_remaining()));
             }
         }
     }

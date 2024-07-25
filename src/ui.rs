@@ -34,16 +34,16 @@ impl Plugin for UiPlugin {
     }
 }
 
-pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
-pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0.0, 0.35);
-pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const BOOSTED_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
-pub const OUR_SCORE_TEXT: Color = Color::rgb(0.55, 0.0, 0.55);
-pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
+pub const FOCUSED_BUTTON: Color = Color::srgb(0.25, 0.0, 0.25);
+pub const FOCUSED_HOVERED_BUTTON: Color = Color::srgb(0.35, 0.0, 0.35);
+pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+pub const BUTTON_TEXT: Color = Color::srgb(0.9, 0.9, 0.9);
+pub const TITLE_TEXT: Color = Color::srgb(0.9, 0.9, 0.9);
+pub const BOOSTED_TEXT: Color = Color::srgb(0.55, 0.0, 0.55);
+pub const OUR_SCORE_TEXT: Color = Color::srgb(0.55, 0.0, 0.55);
+pub const CONTAINER_BACKGROUND: Color = Color::srgb(0.1, 0.1, 0.1);
 
 pub const BOOST_PX_PER_SECOND: f32 = 30.;
 pub const BOOST_NOTCH_PX: f32 = 2.;
@@ -262,11 +262,11 @@ fn fade_trick_text(
     if !timer.finished() {
         for mut text in query.iter_mut() {
             text.sections[0].style.color =
-                Color::rgba(1., 0., 0., Ease::cubic_out(timer.fraction_remaining()))
+                Color::srgba(1., 0., 0., Ease::cubic_out(timer.fraction_remaining()))
         }
     } else if timer.just_finished() {
         for mut text in query.iter_mut() {
-            text.sections[0].style.color = Color::rgba(1., 0., 0., 0.)
+            text.sections[0].style.color = Color::srgba(1., 0., 0., 0.)
         }
     }
 }
@@ -339,7 +339,7 @@ fn trick_text(
 
     for mut node in text_node.iter_mut() {
         node.sections[0].value.clone_from(&**text);
-        node.sections[0].style.color = Color::rgba(1., 0., 0., 1.)
+        node.sections[0].style.color = Color::srgba(1., 0., 0., 1.)
     }
 
     timer.reset();
