@@ -1617,6 +1617,7 @@ dependencies = [
  "bevy_tiling_background",
  "interpolation",
  "leafwing-input-manager",
+ "log",
  "rand",
  "ron",
  "serde",
