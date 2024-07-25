@@ -17,7 +17,7 @@ bevy_asset_loader = "0.21"
 bevy-inspector-egui = { version = "0.25", optional = true }
 leafwing-input-manager = "0.14"
 bevy_jornet = "0.8"
-# BLOCKED
+# https://github.com/BraymatterOrg/bevy_tiling_background/pull/25
 bevy_tiling_background = { git = "https://github.com/rparrett/bevy_tiling_background.git", branch = "bevy-0.14" }
 bevy_mod_debugdump = { version = "0.11", optional = true }
 bevy-alt-ui-navigation-lite = "0.2"
