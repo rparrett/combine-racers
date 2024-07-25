@@ -1,7 +1,4 @@
-use crate::{
-    settings::{LeaderboardSetting, MusicSetting, SfxSetting, ShadowSetting},
-    GameState,
-};
+use crate::settings::{LeaderboardSetting, MusicSetting, SfxSetting, ShadowSetting};
 
 use bevy::prelude::*;
 use bevy_simple_prefs::{Prefs, PrefsPlugin};
