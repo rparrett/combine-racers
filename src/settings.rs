@@ -1,24 +1,23 @@
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Resource, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Deref, DerefMut, Debug, Clone, Reflect)]
 pub struct MusicSetting(u8);
 impl Default for MusicSetting {
     fn default() -> Self {
-        Self(100)
+        Self(50)
     }
 }
 
-#[derive(Resource, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Deref, DerefMut, Debug, Clone, Reflect)]
 pub struct SfxSetting(u8);
 impl Default for SfxSetting {
     fn default() -> Self {
-        Self(100)
+        Self(50)
     }
 }
 
-#[derive(Resource, Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Reflect)]
 pub enum ShadowSetting {
     None,
     Low,
@@ -51,5 +50,5 @@ impl Display for ShadowSetting {
     }
 }
 
-#[derive(Resource, Default, Deref, DerefMut, Debug, Serialize, Deserialize, Clone)]
+#[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Reflect)]
 pub struct LeaderboardSetting(pub Option<bevy_jornet::Player>);
