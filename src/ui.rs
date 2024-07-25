@@ -1,6 +1,6 @@
 use bevy::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 use bevy_rapier3d::prelude::Velocity;
-use bevy_ui_navigation::prelude::*;
 use interpolation::Ease;
 
 use crate::{AfterPhysics, Boost, GameAssets, GameSet, GameState, Player, RaceTime, Trick};
@@ -125,7 +125,7 @@ fn setup(mut commands: Commands, assets: Res<GameAssets>) {
                     color: Color::NONE,
                 },
             )
-            .with_alignment(TextAlignment::Center),
+            .with_justify(JustifyText::Center),
             ..Default::default()
         },
         GameUiMarker,
@@ -262,7 +262,7 @@ fn fade_trick_text(
     if !timer.finished() {
         for mut text in query.iter_mut() {
             text.sections[0].style.color =
-                Color::rgba(1., 0., 0., Ease::cubic_out(timer.percent_left()))
+                Color::rgba(1., 0., 0., Ease::cubic_out(timer.fraction_remaining()))
         }
     } else if timer.just_finished() {
         for mut text in query.iter_mut() {

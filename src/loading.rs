@@ -41,13 +41,17 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(PipelinesReadyPlugin)
             .add_loading_state(
-                LoadingState::new(GameState::Loading).continue_to_state(GameState::Decorating),
+                LoadingState::new(GameState::Loading)
+                    .load_collection::<GameAssets>()
+                    .load_collection::<AudioAssets>()
+                    .continue_to_state(GameState::Decorating),
             )
-            .add_collection_to_loading_state::<_, GameAssets>(GameState::Loading)
-            .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
             .add_systems(
                 Update,
-                check_pipelines.run_if(in_state(GameState::Pipelines)),
+                (
+                    check_pipelines.run_if(in_state(GameState::Pipelines)),
+                    log_pipelines.run_if(resource_changed::<PipelinesReady>),
+                ),
             )
             .add_systems(OnExit(GameState::Pipelines), cleanup)
             .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
@@ -62,10 +66,13 @@ fn setup_pipelines(mut commands: Commands) {
 }
 
 fn check_pipelines(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
-    info!("Pipelines: {}/{}", ready.get(), EXPECTED_PIPELINES);
     if ready.get() >= EXPECTED_PIPELINES {
         next_state.set(GameState::MainMenu);
     }
+}
+
+fn log_pipelines(pipelines: Res<PipelinesReady>) {
+    info!("Pipelines: {}/{}", pipelines.get(), EXPECTED_PIPELINES);
 }
 
 fn cleanup(mut commands: Commands, query: Query<Entity, With<PipelinesMarker>>) {

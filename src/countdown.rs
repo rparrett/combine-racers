@@ -46,7 +46,7 @@ fn update(
                 commands.spawn(AudioBundle {
                     source: game_audio.three_two_one.clone(),
                     settings: PlaybackSettings::DESPAWN
-                        .with_volume(Volume::new_relative(**audio_setting as f32 / 100.)),
+                        .with_volume(Volume::new(**audio_setting as f32 / 100.)),
                 });
             }
 
@@ -54,7 +54,7 @@ fn update(
 
             for mut text in text_query.iter_mut() {
                 let left =
-                    timer.countdown.percent_left() * timer.countdown.duration().as_secs_f32();
+                    timer.countdown.fraction_remaining() * timer.countdown.duration().as_secs_f32();
 
                 text.sections[0].value = format!("{}", left.ceil());
                 text.sections[0].style.color = Color::rgba(1., 0., 0., Ease::cubic_out(left % 1.));
@@ -71,7 +71,7 @@ fn update(
             timer.go.tick(time.delta());
             for mut text in text_query.iter_mut() {
                 text.sections[0].style.color =
-                    Color::rgba(1., 0., 0., Ease::cubic_out(timer.go.percent_left()));
+                    Color::rgba(1., 0., 0., Ease::cubic_out(timer.go.fraction_remaining()));
             }
         }
     }
