@@ -1084,9 +1084,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_simple_prefs"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf9ac4eb21dbe02da048ea7f9f7a7ae1508ecd28f0ca9078f50dadc459efd70"
+checksum = "4af6b6e86fa252466b3836c0094d1f8b4d42683ced245522dda2bfcd409ff654"
 dependencies = [
  "bevy",
  "bevy_simple_prefs_derive",
@@ -1097,9 +1097,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_simple_prefs_derive"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24c8a3f20efc0654c75ae7c3e1dd0748e44f5f963a02953346c13b8849a444e7"
+checksum = "474ad711aed64b87c3c01c0244d5b29e009ce9b3c2309a2200e401dab323452b"
 dependencies = [
  "bevy",
  "quote",
@@ -1643,8 +1643,6 @@ dependencies = [
  "leafwing-input-manager",
  "log",
  "rand",
- "ron",
- "serde",
  "web-sys",
 ]
 
