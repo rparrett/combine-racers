@@ -39,6 +39,10 @@ log = { version = "0.4", features = [
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "*", features = ["console", "Window", "Storage"] }
 
+[lints.clippy]
+type_complexity = "allow"
+too_many_arguments = "allow"
+
 [profile.dist]
 inherits = "release"
 lto = "thin"
