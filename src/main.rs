@@ -19,6 +19,7 @@ use bevy::{
     asset::AssetMetaCheck,
     audio::Volume,
     color::palettes::css::{GRAY, GREEN, ORANGE},
+    core_pipeline::tonemapping::Tonemapping,
     log::LogPlugin,
     pbr::CascadeShadowConfigBuilder,
     prelude::*,
@@ -360,6 +361,7 @@ fn spawn_camera(mut commands: Commands, zoom: Res<Zoom>) {
                 ..default()
             },
             transform: Transform::from_xyz(0., 0., zoom.target),
+            tonemapping: Tonemapping::ReinhardLuminance,
             ..Default::default()
         },
         RenderLayers::from_layers(&[0, 1]),
@@ -443,20 +445,23 @@ fn setup_game(
             .at_z_layer(0.1),
     );
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 10_000.0,
-            shadows_enabled: true,
+    commands.spawn((
+        Name::new("DirectionalLight"),
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 6_000.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            cascade_shadow_config: CascadeShadowConfigBuilder {
+                maximum_distance: 100.,
+                ..default()
+            }
+            .into(),
+            transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
             ..default()
         },
-        cascade_shadow_config: CascadeShadowConfigBuilder {
-            maximum_distance: 100.,
-            ..default()
-        }
-        .into(),
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.4, 0.)),
-        ..default()
-    });
+    ));
 
     // ambient light
     commands.insert_resource(AmbientLight {
