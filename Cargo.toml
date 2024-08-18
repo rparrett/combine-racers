@@ -18,8 +18,7 @@ bevy-inspector-egui = { version = "0.25", optional = true }
 leafwing-input-manager = "0.14"
 # https://github.com/vleue/jornet/pull/296
 bevy_jornet = { git = "https://github.com/rparrett/jornet.git", branch = "reflect-player-14" }
-# https://github.com/BraymatterOrg/bevy_tiling_background/pull/25
-bevy_tiling_background = { git = "https://github.com/rparrett/bevy_tiling_background.git", branch = "bevy-0.14" }
+bevy_tiling_background = { version = "0.11" }
 bevy_mod_debugdump = { version = "0.11", optional = true }
 bevy-alt-ui-navigation-lite = "0.2"
 bevy_pipelines_ready = "0.4"
